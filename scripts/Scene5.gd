@@ -22,6 +22,9 @@ const MAT_BENCH := preload("res://materials/epoxy_bench.tres")
 const MAT_STEEL := preload("res://materials/stainless.tres")
 const MAT_FLASK := preload("res://materials/glassware_clear.tres")
 const MAT_JAR := preload("res://materials/glass_jar.tres")
+const RACK_SCENE := preload("res://assets/props/tube_rack.glb")
+const REAGENT_SCENE := preload("res://assets/props/reagent_bottle.glb")
+const DISH_SCENE := preload("res://assets/props/petri_dish.glb")
 const MAT_PLANTLET_LEAF := preload("res://materials/plantlet_leaf.tres")
 const MAT_PLANTLET_STEM := preload("res://materials/plantlet_stem.tres")
 
@@ -37,9 +40,9 @@ func _ready() -> void:
 	super._ready()
 
 func _configure_camera() -> void:
-	camera.position = Vector3(0.0, 4.2, 7.0) * 1.3
-	camera.look_at(Vector3(0.0, 1.5, 0.0))
-	camera.fov = 50.0
+	camera.position = Vector3(0.0, 3.35, 9.30)
+	camera.look_at(Vector3(0.0, 1.48, -0.10))
+	camera.fov = 46.0
 
 func _setup_scene() -> void:
 	_build_room()
@@ -52,7 +55,7 @@ func _build_room() -> void:
 	var floor_mi := add_static(mk_plane(Vector2(22, 22)), Vector3.ZERO, Color.WHITE)
 	floor_mi.material_override = MAT_FLOOR
 	var wall := add_static(mk_box(Vector3(16, 4.5, 0.2)), Vector3(0, 2.25, -4.5), Color.WHITE)
-	wall.material_override = MAT_TILE
+	wall.material_override = _tiled(16.0, 4.5)
 
 	# 台面 + 不锈钢腿
 	var top := add_static(mk_box(Vector3(11.0, 0.12, 3.0)), Vector3(0, 0.94, 0.0), Color.WHITE)
@@ -61,6 +64,8 @@ func _build_room() -> void:
 		for zo in [-1.2, 1.2]:
 			var leg := add_static(mk_box(Vector3(0.10, 0.94, 0.10)), Vector3(xo, 0.47, zo), Color.WHITE)
 			leg.material_override = MAT_STEEL
+
+	_dress_bench()
 
 	# 顶灯：冷白柔光，取代原来的黄色点光源（能量 2.5 直接过曝）
 	for i in 3:
@@ -75,6 +80,31 @@ func _build_room() -> void:
 		lmi.material_override = lmat
 		lmi.position = Vector3(lx, 3.90, 0.0)
 		add_child(lmi)
+
+
+## box 墙面的 UV 是 0..1，直接套世界坐标 UV 的材质会把瓷砖拉成两米一块。
+## 世界 UV 下 1 单位 = 1 m，材质用 2.5 次重复；换算到 box 面就是 宽/高 × 2.5。
+func _tiled(w: float, h: float) -> StandardMaterial3D:
+	var m := MAT_TILE.duplicate() as StandardMaterial3D
+	m.uv1_scale = Vector3(w * 2.5, h * 2.5, 1.0)
+	return m
+
+## 台面后侧摆器材：11 m 的台面只放三个瓶子太空了
+func _dress_bench() -> void:
+	# 左右各一个试管架
+	for x in [-2.6, 2.6]:
+		PropKit.spawn(self, RACK_SCENE, Vector3(x, 1.00, -1.02), Vector3(0, 12.0, 0), {},
+			Vector3(4.2, 4.2, 4.2))
+	# 后排试剂瓶
+	for i in 5:
+		var x := -3.6 + i * 1.8
+		var scl := 3.0 + float(i % 2) * 0.5
+		PropKit.spawn(self, REAGENT_SCENE, Vector3(x, 1.00, -1.18), Vector3.ZERO, {},
+			Vector3(scl, scl, scl))
+	# 一摞培养皿
+	for i in 3:
+		PropKit.spawn(self, DISH_SCENE, Vector3(3.55, 1.00 + i * 0.022, -0.55), Vector3.ZERO, {},
+			Vector3(5.2, 5.2, 5.2))
 
 func _build_callus() -> void:
 	# 培养皿底座（中央）
@@ -342,6 +372,9 @@ func _build_shoot_plant(progress: float) -> void:
 			Vector3.ZERO, {"plantlet_leaf": MAT_PLANTLET_LEAF, "plantlet_stem": MAT_PLANTLET_STEM,
 			"plantlet_root": MAT_PLANTLET_LEAF}, Vector3.ONE * 0.01)
 	shoot_model.scale = Vector3.ONE * (0.01 + progress * 7.0)
+	# 瓶里的苗看不到根，根丝会从瓶底穿出去
+	for node in shoot_model.find_children("plantlet_root*", "MeshInstance3D", true, false):
+		(node as MeshInstance3D).visible = false
 
 # ── 预建根系条（初始 scale=0，之后逐步放大） ──
 var _root_defs := [

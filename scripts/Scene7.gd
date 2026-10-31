@@ -54,11 +54,17 @@ func _setup_scene() -> void:
 	_build_chrom_overlay()
 	_build_treatment_panel()
 
+
+## box 墙面的 UV 是 0..1，直接套世界坐标 UV 的材质会把瓷砖拉成两米一块。
+func _tiled(w: float, h: float) -> StandardMaterial3D:
+	var m := MAT_TILE.duplicate() as StandardMaterial3D
+	m.uv1_scale = Vector3(w * 2.5, h * 2.5, 1.0)
+	return m
 func _build_lab() -> void:
 	var floor_mi := add_static(mk_plane(Vector2(22, 22)), Vector3.ZERO, Color.WHITE)
 	floor_mi.material_override = MAT_FLOOR
 	var wall := add_static(mk_box(Vector3(14, 4.5, 0.2)), Vector3(0, 2.25, -4), Color.WHITE)
-	wall.material_override = MAT_TILE
+	wall.material_override = _tiled(14.0, 4.5)
 	var top := add_static(mk_box(Vector3(10.0, 0.12, 3.4)), Vector3(0, 0.90, -0.4), Color.WHITE)
 	top.material_override = MAT_BENCH
 
@@ -68,11 +74,14 @@ func _build_haploid_plant() -> void:
 	haploid_plant.name = "HaploidPlant"
 	add_child(haploid_plant)
 
-	PropKit.spawn(haploid_plant, PLANTLET_SCENE, Vector3.ZERO, Vector3.ZERO, {
+	var hp := PropKit.spawn(haploid_plant, PLANTLET_SCENE, Vector3.ZERO, Vector3.ZERO, {
 		"plantlet_leaf": MAT_LEAF,
 		"plantlet_stem": MAT_STEM,
 		"plantlet_root": MAT_LEAF,
 	}, Vector3(11.0, 11.0, 11.0))
+	# 摆在台面上，根丝不该露出来
+	for node in hp.find_children("plantlet_root*", "MeshInstance3D", true, false):
+		(node as MeshInstance3D).visible = false
 	# 无果实（单倍体高度不育）
 
 	create_interactable("haploid_plant_obj",
@@ -185,7 +194,7 @@ func _build_chrom_overlay() -> void:
 	chrom_overlay.visible = false
 	canvas_layer.add_child(chrom_overlay)
 
-	var bg := ColorRect.new(); bg.color = Color(0, 0, 0, 0.85)
+	var bg := ColorRect.new(); bg.color = Color(0.01, 0.03, 0.02, 0.55)
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	chrom_overlay.add_child(bg)
 
@@ -196,8 +205,10 @@ func _build_chrom_overlay() -> void:
 	panel.offset_left = -480; panel.offset_right = 480
 	panel.offset_top = -320; panel.offset_bottom = 320
 	var ps := StyleBoxFlat.new()
-	ps.bg_color = Color(0.02, 0.06, 0.04)
+	ps.bg_color = Color(0.03, 0.09, 0.06, 0.96)
 	ps.set_border_width_all(3); ps.border_color = Color(0.35, 0.65, 0.40)
+	ps.shadow_color = Color(0, 0, 0, 0.55)
+	ps.shadow_size = 18
 	ps.set_corner_radius_all(12)
 	panel.add_theme_stylebox_override("panel", ps)
 	chrom_overlay.add_child(panel)

@@ -59,11 +59,17 @@ func _setup_scene() -> void:
 	_build_operation_table()
 	_build_control_panel()
 
+
+## box 墙面的 UV 是 0..1，直接套世界坐标 UV 的材质会把瓷砖拉成两米一块。
+func _tiled(w: float, h: float) -> StandardMaterial3D:
+	var m := MAT_TILE.duplicate() as StandardMaterial3D
+	m.uv1_scale = Vector3(w * 2.5, h * 2.5, 1.0)
+	return m
 func _build_room() -> void:
 	var floor_mi := add_static(mk_plane(Vector2(26, 26)), Vector3.ZERO, Color.WHITE)
 	floor_mi.material_override = MAT_FLOOR
 	var wall := add_static(mk_box(Vector3(22, 6, 0.2)), Vector3(0, 3.0, -4.0), Color.WHITE)
-	wall.material_override = MAT_TILE
+	wall.material_override = _tiled(22.0, 6.0)
 	add_static(mk_box(Vector3(22, 0.18, 0.18)), Vector3(0, 0.09, -3.9), Color(0.30, 0.32, 0.33))
 
 	# 顶部灯带
@@ -137,7 +143,7 @@ func _build_dark_incubator() -> void:
 		mk_box(Vector3(1.9, 2.6, 1.6)),
 		Color(0, 0, 0, 0), Color(0.60, 0.60, 0.85), "高温暗培养箱")
 	interactables["dark_incubator"]["area"].get_child(0).visible = false
-	attach_label3d("dark_incubator", "高温暗培养箱（33–37 ℃，黑暗）", Vector3(0, 1.75, 0), 40, Color(0.82, 0.80, 1.0))
+	attach_label3d("dark_incubator", "高温暗培养箱（33–37 ℃，黑暗）", Vector3(0, 0.62, 0.62), 40, Color(0.82, 0.80, 1.0))
 
 func _build_light_incubator() -> void:
 	_spawn_incubator(Vector3(3.3, 0.0, -2.2), false)
@@ -147,7 +153,7 @@ func _build_light_incubator() -> void:
 		mk_box(Vector3(1.9, 2.6, 1.6)),
 		Color(0, 0, 0, 0), Color(1.0, 1.0, 0.72), "光照培养箱")
 	interactables["light_incubator"]["area"].get_child(0).visible = false
-	attach_label3d("light_incubator", "光照培养箱（25 ℃，光照）", Vector3(0, 1.75, 0), 40, Color(0.88, 1.0, 0.62))
+	attach_label3d("light_incubator", "光照培养箱（25 ℃，光照）", Vector3(0, 0.62, 0.62), 40, Color(0.88, 1.0, 0.62))
 
 func _build_operation_table() -> void:
 	PropKit.spawn(self, BENCH_SCENE, Vector3(0.0, 0.0, 0.55), Vector3.ZERO, {}, Vector3(1.0, 1.0, 1.0))

@@ -34,6 +34,9 @@ const MAT_MICRO := preload("res://materials/microscope_body.tres")
 const MAT_MICRO_LENS := preload("res://materials/microscope_lens.tres")
 const MAT_JAR := preload("res://materials/glass_jar.tres")
 const MAT_AGAR := preload("res://materials/agar.tres")
+const RACK_SCENE := preload("res://assets/props/tube_rack.glb")
+const REAGENT_SCENE := preload("res://assets/props/reagent_bottle.glb")
+const DISH_SCENE := preload("res://assets/props/petri_dish.glb")
 
 func _ready() -> void:
 	scene_number = 6
@@ -50,7 +53,7 @@ func _ready() -> void:
 func _configure_camera() -> void:
 	camera.position = Vector3(0.0, 2.45, 6.60)
 	camera.look_at(Vector3(0.0, 1.28, 0.05))
-	camera.fov = 50.0
+	camera.fov = 55.0
 
 func _setup_scene() -> void:
 	_build_lab()
@@ -62,7 +65,7 @@ func _build_lab() -> void:
 	var floor_mi := add_static(mk_plane(Vector2(22, 22)), Vector3.ZERO, Color.WHITE)
 	floor_mi.material_override = MAT_FLOOR
 	var wall := add_static(mk_box(Vector3(14, 4, 0.2)), Vector3(0, 2, -4), Color.WHITE)
-	wall.material_override = MAT_TILE
+	wall.material_override = _tiled(14.0, 4.0)
 
 	# 台面（深色环氧）+ 不锈钢腿
 	var top := add_static(mk_box(Vector3(8.4, 0.10, 3.0)), Vector3(0, 0.92, -0.4), Color.WHITE)
@@ -71,6 +74,29 @@ func _build_lab() -> void:
 		for zo in [-1.7, 1.0]:
 			var leg := add_static(mk_box(Vector3(0.09, 0.87, 0.09)), Vector3(xo, 0.435, zo), Color.WHITE)
 			leg.material_override = MAT_STEEL
+
+	_dress_bench()
+
+
+## box 墙面的 UV 是 0..1，直接套世界坐标 UV 的材质会把瓷砖拉成两米一块。
+## 世界 UV 下 1 单位 = 1 m，材质用 2.5 次重复；换算到 box 面就是 宽/高 × 2.5。
+func _tiled(w: float, h: float) -> StandardMaterial3D:
+	var m := MAT_TILE.duplicate() as StandardMaterial3D
+	m.uv1_scale = Vector3(w * 2.5, h * 2.5, 1.0)
+	return m
+
+## 台面补器材：现在只有显微镜和四个瓶子，中景空
+func _dress_bench() -> void:
+	for x in [-2.2, 2.2]:
+		PropKit.spawn(self, RACK_SCENE, Vector3(x, 0.97, -1.30), Vector3(0, -10.0, 0), {},
+			Vector3(3.4, 3.4, 3.4))
+	for i in 4:
+		var x := -1.5 + i * 1.0
+		PropKit.spawn(self, REAGENT_SCENE, Vector3(x, 0.97, -1.45), Vector3.ZERO, {},
+			Vector3(2.4 + float(i % 2) * 0.4, 2.4 + float(i % 2) * 0.4, 2.4 + float(i % 2) * 0.4))
+	for i in 2:
+		PropKit.spawn(self, DISH_SCENE, Vector3(-2.9, 0.97 + i * 0.018, -0.55), Vector3.ZERO, {},
+			Vector3(4.0, 4.0, 4.0))
 
 func _build_microscope() -> void:
 	# 真实显微镜模型，放大到与场景比例匹配
@@ -125,6 +151,8 @@ func _draw_small_plant(pos: Vector3, idx: int) -> void:
 		"plantlet_root": MAT_LEAF,
 	}, Vector3(9.0, 9.0, 9.0))
 	plantlet.name = "plantlet_%d" % idx
+	for node in plantlet.find_children("plantlet_root*", "MeshInstance3D", true, false):
+		(node as MeshInstance3D).visible = false
 
 func _build_microscope_overlay() -> void:
 	micro_overlay = Control.new()
