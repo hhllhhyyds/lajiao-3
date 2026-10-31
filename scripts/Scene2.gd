@@ -20,6 +20,12 @@ const MAT_LEAF := preload("res://materials/leaf.tres")
 const MAT_PETAL := preload("res://materials/petal.tres")
 const MAT_CALYX := preload("res://materials/calyx.tres")
 const MAT_FILAMENT := preload("res://materials/anther_filament.tres")
+const MAT_PICKED := preload("res://materials/anther_picked.tres")
+const MAT_CASE := preload("res://materials/fridge_case.tres")
+const MAT_INNER := preload("res://materials/fridge_inner.tres")
+const MAT_STEEL := preload("res://materials/stainless.tres")
+const MAT_DOOR := preload("res://materials/fridge_door.tres")
+const MAT_DISPLAY := preload("res://materials/display_black.tres")
 
 func _ready() -> void:
 	scene_number = 2
@@ -32,8 +38,8 @@ func _ready() -> void:
 	super._ready()
 
 func _configure_camera() -> void:
-	camera.position = Vector3(1.85, 2.05, 4.35)
-	camera.look_at(Vector3(-0.85, 0.95, 0.05))
+	camera.position = Vector3(1.60, 2.40, 6.60)
+	camera.look_at(Vector3(-0.20, 1.15, 0.10))
 	camera.fov = 42.0
 
 func _setup_scene() -> void:
@@ -94,23 +100,68 @@ func _anther_specimen(nm: String, pos: Vector3, size: float, color: Color,
 		"anther_filament": MAT_FILAMENT,
 	}, Vector3(scl, scl, scl))
 
+func _panel(size: Vector3, pos: Vector3, mat: Material) -> MeshInstance3D:
+	var mi := add_static(mk_box(size), pos, Color.WHITE)
+	mi.material_override = mat
+	return mi
+
 func _build_cold_storage() -> void:
-	# 低温处理箱外壳（半透明蓝色）
-	add_glass(mk_box(Vector3(2.0, 1.8, 1.6)), Vector3(3.0, 0.9, -0.5), Color(0.22, 0.38, 0.72, 0.35))
-	# 箱门玻璃（半透明浅蓝）
-	add_glass(mk_box(Vector3(1.6, 1.3, 0.08)), Vector3(3.0, 1.0, 0.32), Color(0.55, 0.72, 0.95, 0.25))
-	# 内部底板（半透明白色）
-	add_glass(mk_box(Vector3(1.7, 0.15, 1.3)), Vector3(3.0, 0.2, -0.5), Color(0.80, 0.90, 0.98, 0.40))
+	# 低温预处理柜：白色箱体 + 内胆 + 两层隔板 + 玻璃门 + 温度显示
+	var w := 2.0
+	var h := 1.8
+	var d := 1.6
+	var c := Vector3(2.05, 0.9, -0.42)
+	var t := 0.05
+
+	_panel(Vector3(w, h, t), c + Vector3(0.0, 0.0, -d * 0.5), MAT_CASE)
+	_panel(Vector3(t, h, d), c + Vector3(-w * 0.5, 0.0, 0.0), MAT_CASE)
+	_panel(Vector3(t, h, d), c + Vector3(w * 0.5, 0.0, 0.0), MAT_CASE)
+	_panel(Vector3(w, t, d), c + Vector3(0.0, h * 0.5, 0.0), MAT_CASE)
+	_panel(Vector3(w, t, d), c + Vector3(0.0, -h * 0.5, 0.0), MAT_CASE)
+
+	# 内胆：比外壳略小一圈的浅色板，制造"箱内有空间"的层次
+	_panel(Vector3(w - 0.1, h - 0.1, 0.02), c + Vector3(0.0, 0.0, -d * 0.5 + 0.05), MAT_INNER)
+
+	# 隔板
+	for sy in [-0.28, 0.16]:
+		_panel(Vector3(w - 0.14, 0.03, d - 0.16), c + Vector3(0.0, sy, 0.02), MAT_STEEL)
+
+	# 前框 + 玻璃门
+	_panel(Vector3(w, 0.10, t), c + Vector3(0.0, h * 0.5 - 0.05, d * 0.5), MAT_CASE)
+	_panel(Vector3(w, 0.10, t), c + Vector3(0.0, -h * 0.5 + 0.05, d * 0.5), MAT_CASE)
+	_panel(Vector3(0.08, h, t), c + Vector3(-w * 0.5 + 0.04, 0.0, d * 0.5), MAT_CASE)
+	_panel(Vector3(0.08, h, t), c + Vector3(w * 0.5 - 0.04, 0.0, d * 0.5), MAT_CASE)
+	var door := add_glass(mk_box(Vector3(w - 0.16, h - 0.20, 0.02)),
+		c + Vector3(0.0, 0.0, d * 0.5), Color(0.72, 0.86, 0.96, 0.16))
+	door.material_override = MAT_DOOR
+
+	# 门把手
+	_panel(Vector3(0.05, 0.34, 0.05), c + Vector3(w * 0.5 - 0.16, 0.0, d * 0.5 + 0.05), MAT_STEEL)
+
+	# 温度显示条
+	var disp := add_static(mk_box(Vector3(0.42, 0.16, 0.04)),
+		c + Vector3(0.0, h * 0.5 + 0.10, d * 0.5 - 0.10), Color(0.05, 0.10, 0.14))
+	disp.material_override = MAT_DISPLAY
+	var lbl_disp := add_label3d("3–5 ℃", c + Vector3(0.0, h * 0.5 + 0.10, d * 0.5 + 0.06), 34, Color(0.45, 1.0, 0.72))
+	lbl_disp.outline_size = 5
+	lbl_disp.outline_modulate = Color(0.0, 0.10, 0.06, 0.9)
+
+	# 柜内冷光
+	var cool := OmniLight3D.new()
+	cool.position = c + Vector3(0.0, 0.30, 0.10)
+	cool.light_color = Color(0.72, 0.88, 1.0)
+	cool.light_energy = 1.1
+	cool.omni_range = 1.9
+	add_child(cool)
 
 	create_interactable("cold_box",
-		Vector3(3.0, 1.0, -0.5),
+		c,
 		mk_box(Vector3(1.8, 1.6, 1.4)),
-		Color(0.22, 0.38, 0.72, 0.0),   # 透明碰撞区
-		Color(0.40, 0.58, 0.95),
+		Color(0.30, 0.50, 0.72, 0.0),
+		Color(0.45, 0.72, 1.0),
 		"低温预处理箱")
-	# 隐藏透明区域的mesh
 	interactables["cold_box"]["area"].get_child(0).visible = false
-	var lbl_cold := attach_label3d("cold_box", "低温预处理箱\n(3–5 ℃)", Vector3(0, 1.2, 0), 44, Color(0.7, 0.85, 1.0))
+	var lbl_cold := attach_label3d("cold_box", "低温预处理箱", Vector3(0, 1.42, 0), 44, Color(0.72, 0.88, 1.0))
 	if lbl_cold: lbl_cold.outline_size = 7; lbl_cold.outline_modulate = Color(0.05, 0.1, 0.3, 0.9)
 
 func _build_temp_controls() -> void:
@@ -286,25 +337,20 @@ func _animate_pick(bud_name: String) -> void:
 	if not area:
 		return
 
-	# 创建花药模型用于后续动画
+	# 采摘后的花药用真实模型，保持在原花药的位置（不要飘到画面外）
 	bud_model = Node3D.new()
 	bud_model.position = area.position
 	add_child(bud_model)
+	PropKit.spawn(bud_model, ANTHER_SCENE, Vector3.ZERO, Vector3(16.0, 0.0, 0.0), {
+		"anther_body": MAT_PICKED,
+		"anther_filament": MAT_FILAMENT,
+	}, Vector3(20.0, 20.0, 20.0))
 
-	# 添加花药视觉（黄色球体）
-	var mesh_inst := MeshInstance3D.new()
-	mesh_inst.mesh = mk_sphere(0.18)
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.96, 0.92, 0.62)
-	mesh_inst.material_override = mat
-	bud_model.add_child(mesh_inst)
-
-	# 采摘动画
+	# 采摘动画：轻微上提 + 放大，表示"被选中"
 	var tw := create_tween()
-	tw.tween_property(bud_model, "position", bud_model.position + Vector3(0, 0.6, 0), 0.4)
-	tw.tween_property(bud_model, "scale", Vector3(1.4, 1.4, 1.4), 0.2)
+	tw.tween_property(bud_model, "position", bud_model.position + Vector3(0, 0.22, 0), 0.4)
+	tw.tween_property(bud_model, "scale", Vector3(1.25, 1.25, 1.25), 0.2)
 
-	# 隐藏原始交互区域
 	area.queue_free()
 
 func _animate_bud_to_cold_box() -> void:
@@ -312,7 +358,7 @@ func _animate_bud_to_cold_box() -> void:
 		return
 
 	# 花药飞向低温箱的动画
-	var target_pos := Vector3(3.0, 0.6, -0.5)  # 低温箱内部位置
+	var target_pos := Vector3(2.05, 0.6, -0.42)  # 低温箱内部位置
 	var tw := create_tween()
 	tw.set_parallel(true)
 	tw.tween_property(bud_model, "position", target_pos, 1.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)

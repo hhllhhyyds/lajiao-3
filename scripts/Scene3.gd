@@ -16,6 +16,10 @@ const MAT_CAP := preload("res://materials/cap_black.tres")
 const MAT_CAP_BLUE := preload("res://materials/cap_blue.tres")
 const MAT_CLEAR_BOTTLE := preload("res://materials/clear_bottle.tres")
 const MAT_WHITE_BOTTLE := preload("res://materials/white_bottle.tres")
+const MAT_STAINLESS := preload("res://materials/stainless.tres")
+const MAT_BENCH := preload("res://materials/epoxy_bench.tres")
+const MAT_TILE := preload("res://materials/tile_wall.tres")
+const MAT_FLOOR := preload("res://materials/floor_epoxy.tres")
 
 # 各操作目标位置（悬停在试剂/器具上方）
 const POS_BUD      := Vector3(-4.5, 1.35, 0.3)
@@ -24,21 +28,21 @@ const POS_WATER1   := Vector3(-2.3, 1.55, 0.0)
 const POS_NACLO    := Vector3(-0.8, 1.55, 0.0)
 const POS_WATER2   := Vector3( 0.7, 1.55, 0.0)
 const POS_CABINET  := Vector3( 3.6, 2.10, 0.0)
-const POS_TWEEZERS := Vector3( 2.45, 2.90, 0.0)
-const POS_MEDIUM   := Vector3( 2.45, 2.20, 2.90)
+const POS_TWEEZERS := Vector3( 2.45, 1.12, -0.75)
+const POS_MEDIUM   := Vector3( 2.45, 1.16,  1.15)
 
 func _ready() -> void:
 	scene_number = 3
 	scene_title  = "花药消毒与接种"
 	light_focus = Vector3(0.0, 1.5, 0.0)
 	light_radius = 4.0
-	light_intensity = 0.55
+	light_intensity = 0.62
 	super._ready()
 
 func _configure_camera() -> void:
-	camera.position = Vector3(0.5, 3.5, 8.0) * 1.2
-	camera.look_at(Vector3(0.0, 1.0, 0.0))
-	camera.fov = 50.0
+	camera.position = Vector3(1.95, 2.55, 8.60)
+	camera.look_at(Vector3(-0.45, 1.42, 0.10))
+	camera.fov = 40.0
 
 func _setup_scene() -> void:
 	_build_lab_bench()
@@ -48,16 +52,23 @@ func _setup_scene() -> void:
 	_build_medium()
 
 func _build_lab_bench() -> void:
-	# 实验台面
-	add_static(mk_box(Vector3(10.0, 0.18, 3.5)), Vector3(0.0, 0.9, 0.0), Color(0.90, 0.88, 0.82))
-	# 实验台腿
-	for x in [-4.5, 4.5]:
-		for z in [-1.5, 1.5]:
-			add_static(mk_box(Vector3(0.12, 0.9, 0.12)), Vector3(x, 0.45, z), Color(0.75, 0.72, 0.68))
-	# 地面（白色瓷砖风格）
-	add_static(mk_plane(Vector2(22, 22)), Vector3.ZERO, Color(0.85, 0.88, 0.86))
-	# 墙
-	add_static(mk_box(Vector3(14, 5, 0.2)), Vector3(0, 2.5, -2.2), Color(0.88, 0.90, 0.86))
+	# 台面：深色环氧树脂板，压在不锈钢框上；地面铺环氧地坪
+	var top := add_static(mk_box(Vector3(10.0, 0.10, 3.40)), Vector3(0.0, 0.94, 0.0), Color.WHITE)
+	top.material_override = MAT_BENCH
+	var edge := add_static(mk_box(Vector3(10.1, 0.06, 3.50)), Vector3(0.0, 0.885, 0.0), Color.WHITE)
+	edge.material_override = MAT_STAINLESS
+
+	# 台面下的柜体（整块，不再做细腿，超净台里本来就是这样）
+	var body := add_static(mk_box(Vector3(9.9, 0.86, 3.3)), Vector3(0.0, 0.43, 0.0), Color.WHITE)
+	body.material_override = MAT_STAINLESS
+
+	var floor_mi := add_static(mk_plane(Vector2(14, 9)), Vector3(0.0, 0.0, 0.6), Color.WHITE)
+	floor_mi.material_override = MAT_FLOOR
+
+func _panel(size: Vector3, pos: Vector3, mat: Material) -> MeshInstance3D:
+	var mi := add_static(mk_box(size), pos, Color.WHITE)
+	mi.material_override = mat
+	return mi
 
 func _build_bottles() -> void:
 	# 真实瓶型（Blender 旋转成型）：棕色试剂瓶 / 两支广口瓶 / 锥形瓶
@@ -113,17 +124,42 @@ func _build_bottles() -> void:
 	if lbl_w2: lbl_w2.outline_size = 8; lbl_w2.outline_modulate = Color(0.0, 0.15, 0.3, 0.9)
 
 func _build_sterile_cabinet() -> void:
-	var cab_outer := add_glass(mk_box(Vector3(11.5, 5.0, 5.0)), Vector3(0.35, 2.0, 1.0), Color(0.15, 0.45, 1.0, 0.12))
-	(cab_outer.material_override as StandardMaterial3D).render_priority = -2
-	var cab_inner := add_glass(mk_box(Vector3(11.2, 4.7, 4.7)), Vector3(0.35, 2.0, 1.0), Color(0.0, 0.0, 0.0, 0.0))
-	(cab_inner.material_override as StandardMaterial3D).render_priority = -2
-	add_static(mk_box(Vector3(11.0, 0.08, 4.5)), Vector3(0.35, 3.72, 1.0), Color(0.88, 0.92, 0.88))
+	# 超净台内部：背板 / 左右侧板 / 顶板，开口朝相机（真实层流罩就是这样拍的）
+	var w := 11.6
+	var d := 5.0
+	var h := 4.6
+	var cx := 0.35
+	var cz := 0.6
+	var inner := Color(0.80, 0.82, 0.81)
+
+	_panel(Vector3(w, h, 0.14), Vector3(cx, h * 0.5, cz - d * 0.5), MAT_TILE)
+	_panel(Vector3(0.14, h, d), Vector3(cx - w * 0.5, h * 0.5, cz), MAT_TILE)
+	_panel(Vector3(0.14, h, d), Vector3(cx + w * 0.5, h * 0.5, cz), MAT_TILE)
+	_panel(Vector3(w, 0.14, d), Vector3(cx, h, cz), MAT_TILE)
+
+	# 顶部灯带：超净台的照明是它最标志性的东西
+	var lamp := add_static(mk_box(Vector3(w * 0.86, 0.06, 0.30)), Vector3(cx, h - 0.16, cz + 0.4), Color(0.94, 0.96, 0.98))
+	var lamp_mat := StandardMaterial3D.new()
+	lamp_mat.albedo_color = Color(0.92, 0.95, 0.98)
+	lamp_mat.emission_enabled = true
+	lamp_mat.emission = Color(0.85, 0.92, 1.0)
+	lamp_mat.emission_energy_multiplier = 1.6
+	lamp.material_override = lamp_mat
+	var lamp_light := OmniLight3D.new()
+	lamp_light.position = Vector3(cx, h - 0.5, cz + 0.5)
+	lamp_light.light_color = Color(0.88, 0.94, 1.0)
+	lamp_light.light_energy = 1.6
+	lamp_light.omni_range = 9.0
+	add_child(lamp_light)
+
+	# 前挡板：只在台面前缘立一块矮不锈钢板，不挡视线
+	_panel(Vector3(w, 0.30, 0.08), Vector3(cx, 1.12, cz + d * 0.5 - 0.1), MAT_STAINLESS)
 
 	create_interactable("sterile_cabinet",
-		Vector3(0.35, 2.0, 1.0), mk_box(Vector3(11.2, 4.8, 4.8)),
+		Vector3(cx, 2.0, cz), mk_box(Vector3(11.2, 4.6, d - 0.4)),
 		Color(0.62, 0.78, 0.92, 0.0), Color(0.75, 0.92, 1.0), "超净工作台（无菌区）")
 	interactables["sterile_cabinet"]["area"].get_child(0).visible = false
-	var lbl_cab := add_label3d("超净工作台\n(无菌环境)", Vector3(4.2, 1.45, 2.0), 40, Color(1.0, 0.55, 0.75))
+	var lbl_cab := add_label3d("超净工作台\n(无菌环境)", Vector3(4.6, 1.55, 2.2), 40, Color(1.0, 0.62, 0.80))
 	lbl_cab.outline_size = 10; lbl_cab.outline_modulate = Color(0.45, 0.10, 0.25, 1.0)
 
 func _build_flower_bud() -> void:
@@ -150,22 +186,22 @@ func _build_flower_bud() -> void:
 	lbl_bud.outline_size = 8; lbl_bud.outline_modulate = Color(0.1, 0.25, 0.05, 0.9)
 
 func _build_medium() -> void:
-	set_top_layer(add_static(mk_cyl(0.50, 0.08), Vector3(2.45, 1.92, 2.90), Color(0.82, 0.92, 0.78)))
-	set_top_layer(add_static(mk_cyl(0.45, 0.10), Vector3(2.45, 1.97, 2.90), Color(0.74, 0.88, 0.68)))
+	set_top_layer(add_static(mk_cyl(0.50, 0.08), Vector3(2.45, 1.03, 1.15), Color(0.82, 0.92, 0.78)))
+	set_top_layer(add_static(mk_cyl(0.45, 0.10), Vector3(2.45, 1.08, 1.15), Color(0.74, 0.88, 0.68)))
 	create_interactable("medium_plate",
-		Vector3(2.45, 2.00, 2.90), mk_cyl(0.52, 0.20),
+		Vector3(2.45, 1.10, 1.15), mk_cyl(0.52, 0.20),
 		Color(0.74, 0.88, 0.68, 0.0), Color(0.85, 1.0, 0.75), "愈伤组织诱导培养基")
 	interactables["medium_plate"]["area"].get_child(0).visible = false
 	var lbl_med := attach_label3d("medium_plate", "愈伤组织\n诱导培养基", Vector3(0, 0.38, 0), 28, Color(0.0, 0.85, 0.85))
 	if lbl_med: lbl_med.outline_size = 10; lbl_med.outline_modulate = Color(0.0, 0.30, 0.30, 1.0)
 
-	set_top_layer(add_static(mk_cyl(0.04, 1.0), Vector3(2.45, 2.69, -0.3), Color(0.72, 0.72, 0.75),
-		Vector3(0, 0, 25)))
+	set_top_layer(add_static(mk_cyl(0.04, 1.0), Vector3(2.45, 1.05, -0.75), Color(0.72, 0.72, 0.75),
+		Vector3(0, 0, 78)))
 	create_interactable("tweezers",
-		Vector3(2.45, 2.69, -0.3), mk_box(Vector3(1.1, 0.25, 0.25)),
+		Vector3(2.45, 1.08, -0.75), mk_box(Vector3(1.1, 0.25, 0.25)),
 		Color(0.72, 0.72, 0.75, 0.0), Color(0.90, 0.95, 1.0), "无菌镊子（剥取花药）")
 	interactables["tweezers"]["area"].get_child(0).visible = false
-	var lbl_twz := add_label3d("无菌镊子", Vector3(2.45, 3.3, -0.3), 40, Color(0.55, 0.55, 0.55))
+	var lbl_twz := add_label3d("无菌镊子", Vector3(3.15, 1.70, -0.75), 40, Color(0.72, 0.72, 0.72))
 	lbl_twz.outline_size = 10; lbl_twz.outline_modulate = Color(0.20, 0.20, 0.20, 1.0)
 
 func _define_steps() -> void:

@@ -159,6 +159,7 @@ static func setup_lighting(parent: Node, focus: Vector3, radius: float,
 	if p.get("rim", false):
 		var rim := SpotLight3D.new()
 		rim.name = "CinematicRim"
+		parent.add_child(rim)
 		rim.position = focus + Vector3(-0.45, 0.7, -1.05) * r
 		rim.look_at(focus + Vector3(0.0, 0.15 * r, 0.0))
 		rim.light_color = Color(0.80, 0.88, 1.0)
@@ -167,7 +168,6 @@ static func setup_lighting(parent: Node, focus: Vector3, radius: float,
 		rim.spot_angle = 34.0
 		rim.spot_angle_attenuation = 0.8
 		rim.shadow_enabled = false
-		parent.add_child(rim)
 
 	# 光池：宽角聚光从上方压下来，深色台面才有明暗梯度
 	if p.get("pool", false):

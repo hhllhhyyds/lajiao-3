@@ -1,0 +1,11 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[resource]
+resource_name = "fridge_door"
+transparency = 1
+blend_mode = 0
+albedo_color = Color(0.78, 0.90, 0.96, 0.16)
+metallic = 0.0
+metallic_specular = 1.0
+roughness = 0.05
+specular_mode = 2

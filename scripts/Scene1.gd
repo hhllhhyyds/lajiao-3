@@ -238,7 +238,7 @@ func _build_dishes() -> void:
 		shape.position = Vector3(0.0, 0.012, 0.0)
 		area.add_child(shape)
 
-		label_projector.add(media["label"], area, Vector3(0.0, 0.024, 0.078), 40,
+		label_projector.add(media["label"], area, Vector3(0.0, 0.115, 0.02), 40,
 			Color(media["color"]).lightened(0.55))
 
 		area.mouse_entered.connect(func(): _hover_enter(media["key"], agar_mat, media["hover"], area))

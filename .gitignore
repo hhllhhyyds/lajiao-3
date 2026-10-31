@@ -20,3 +20,6 @@ export/
 # Python 缓存（Blender 脚本）
 __pycache__/
 *.pyc
+
+# 走关检查的截图（由 tools/walkthrough 生成，可随时重跑）
+docs/steps/
