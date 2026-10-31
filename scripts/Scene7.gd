@@ -19,15 +19,30 @@ var treatment_progress_lbl: Label
 var chrom_overlay: Control
 var micro_static_lbl: LabelProjector.TagLabel  # 显微镜标签（处理完成后才显示）
 
+const MICRO_SCOPE := preload("res://assets/props/microscope.glb")
+const PLANTLET_SCENE := preload("res://assets/props/plantlet.glb")
+const BEAKER_SCENE := preload("res://assets/props/beaker.glb")
+const REAGENT_SCENE := preload("res://assets/props/reagent_bottle.glb")
+const MAT_COLCHICINE := preload("res://materials/amber_glass.tres")
+const MAT_TILE := preload("res://materials/tile_wall.tres")
+const MAT_FLOOR := preload("res://materials/floor_epoxy.tres")
+const MAT_BENCH := preload("res://materials/epoxy_bench.tres")
+const MAT_STEEL := preload("res://materials/stainless.tres")
+const MAT_LEAF := preload("res://materials/plantlet_leaf.tres")
+const MAT_STEM := preload("res://materials/plantlet_stem.tres")
+const MAT_MICRO := preload("res://materials/microscope_body.tres")
+const MAT_MICRO_LENS := preload("res://materials/microscope_lens.tres")
+const MAT_JAR := preload("res://materials/glass_jar.tres")
+
 func _ready() -> void:
 	scene_number = 7
 	scene_title  = "染色体加倍"
 	super._ready()
 
 func _configure_camera() -> void:
-	camera.position = Vector3(0.5, 3.8, 9.0)
-	camera.look_at(Vector3(0.0, 2.0, 0.0))
-	camera.fov = 48.0
+	camera.position = Vector3(0.55, 2.70, 7.60)
+	camera.look_at(Vector3(0.0, 1.45, 0.10))
+	camera.fov = 50.0
 
 func _setup_scene() -> void:
 	_build_lab()
@@ -40,9 +55,12 @@ func _setup_scene() -> void:
 	_build_treatment_panel()
 
 func _build_lab() -> void:
-	add_static(mk_plane(Vector2(22, 22)), Vector3.ZERO, Color(0.84, 0.86, 0.84))
-	add_static(mk_box(Vector3(14, 4.5, 0.2)), Vector3(0, 2.25, -4), Color(0.90, 0.90, 0.88))
-	add_static(mk_box(Vector3(12, 0.16, 4)), Vector3(0, 0.90, -0.5), Color(0.88, 0.88, 0.88))
+	var floor_mi := add_static(mk_plane(Vector2(22, 22)), Vector3.ZERO, Color.WHITE)
+	floor_mi.material_override = MAT_FLOOR
+	var wall := add_static(mk_box(Vector3(14, 4.5, 0.2)), Vector3(0, 2.25, -4), Color.WHITE)
+	wall.material_override = MAT_TILE
+	var top := add_static(mk_box(Vector3(10.0, 0.12, 3.4)), Vector3(0, 0.90, -0.4), Color.WHITE)
+	top.material_override = MAT_BENCH
 
 func _build_haploid_plant() -> void:
 	haploid_plant = Node3D.new()
@@ -50,13 +68,11 @@ func _build_haploid_plant() -> void:
 	haploid_plant.name = "HaploidPlant"
 	add_child(haploid_plant)
 
-	# 茎
-	add_static(mk_cyl(0.06, 1.5), Vector3(0, 0.75, 0), Color(0.20, 0.50, 0.22), Vector3.ZERO, haploid_plant)
-	# 叶
-	for i in 6:
-		var a := i * TAU / 6
-		add_static(mk_sphere(0.14), Vector3(sin(a)*0.3, 0.5+i*0.18, cos(a)*0.3),
-			Color(0.22, 0.58, 0.25), Vector3.ZERO, haploid_plant)
+	PropKit.spawn(haploid_plant, PLANTLET_SCENE, Vector3.ZERO, Vector3.ZERO, {
+		"plantlet_leaf": MAT_LEAF,
+		"plantlet_stem": MAT_STEM,
+		"plantlet_root": MAT_LEAF,
+	}, Vector3(11.0, 11.0, 11.0))
 	# 无果实（单倍体高度不育）
 
 	create_interactable("haploid_plant_obj",
@@ -73,30 +89,12 @@ func _build_colchicine_bottle() -> void:
 	colchicine_bottle_visual.name = "ColchicineBottle"
 	add_child(colchicine_bottle_visual)
 
-	# 秋水仙素瓶（紫色）- 作为子节点
-	var bottle_body := MeshInstance3D.new()
-	bottle_body.mesh = mk_cyl(0.18, 0.75)
-	bottle_body.position = Vector3(0, -0.12, 0)
-	var mat1 := StandardMaterial3D.new()
-	mat1.albedo_color = Color(0.90, 0.45, 0.05)
-	bottle_body.material_override = mat1
-	colchicine_bottle_visual.add_child(bottle_body)
-
-	var bottle_neck := MeshInstance3D.new()
-	bottle_neck.mesh = mk_cyl(0.08, 0.22)
-	bottle_neck.position = Vector3(0, 0.35, 0)
-	var mat2 := StandardMaterial3D.new()
-	mat2.albedo_color = Color(0.90, 0.45, 0.05)
-	bottle_neck.material_override = mat2
-	colchicine_bottle_visual.add_child(bottle_neck)
-
-	var bottle_cap := MeshInstance3D.new()
-	bottle_cap.mesh = mk_sphere(0.10)
-	bottle_cap.position = Vector3(0, 0.50, 0)
-	var mat3 := StandardMaterial3D.new()
-	mat3.albedo_color = Color(0.75, 0.32, 0.02)
-	bottle_cap.material_override = mat3
-	colchicine_bottle_visual.add_child(bottle_cap)
+	# 秋水仙素瓶：真实试剂瓶模型，瓶身换成琥珀色玻璃
+	PropKit.spawn(colchicine_bottle_visual, REAGENT_SCENE, Vector3(0.0, -0.60, 0.0),
+		Vector3.ZERO, {
+		"reagent_body": MAT_COLCHICINE,
+		"reagent_cap": MAT_STEEL,
+	}, Vector3(3.2, 3.2, 3.2))
 
 	create_interactable("colchicine",
 		Vector3(-0.8, 1.42, -0.2), mk_cyl(0.22, 0.88),
@@ -109,10 +107,19 @@ func _build_colchicine_bottle() -> void:
 	add_label3d("秋水仙素", Vector3(-0.8, 2.18, -0.2), 36, Color(1.0, 0.55, 0.10))
 
 func _build_treatment_vessel() -> void:
-	# 处理容器外壁（半透明，可看到植株浸泡状态）
-	add_glass(mk_cyl(0.55, 0.90), Vector3(-2.0, 1.40, 0.3), Color(0.80, 0.82, 0.88, 0.28))
-	# 秋水仙素溶液（蓝紫色半透明液体）
-	add_glass(mk_cyl(0.50, 0.80), Vector3(-2.0, 1.43, 0.3), Color(0.58, 0.65, 0.90, 0.50))
+	# 处理容器：真实烧杯 + 蓝紫溶液
+	PropKit.spawn(self, BEAKER_SCENE, Vector3(-2.0, 0.96, 0.3), Vector3.ZERO, {
+		"beaker_body": MAT_JAR,
+	}, Vector3(5.4, 5.4, 5.4))
+	var sol := MeshInstance3D.new()
+	sol.mesh = mk_cyl(0.36, 0.56)
+	var sol_mat := StandardMaterial3D.new()
+	sol_mat.albedo_color = Color(0.42, 0.48, 0.86, 0.72)
+	sol_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	sol_mat.roughness = 0.18
+	sol.material_override = sol_mat
+	sol.position = Vector3(-2.0, 1.24, 0.3)
+	add_child(sol)
 
 	create_interactable("treat_vessel",
 		Vector3(-2.0, 1.50, 0.3), mk_cyl(0.58, 1.0),
@@ -121,11 +128,18 @@ func _build_treatment_vessel() -> void:
 	attach_label3d("treat_vessel", "处理容器", Vector3(0, -0.80, 0), 36, Color(0.80, 0.85, 1.0))
 
 func _build_microscope() -> void:
-	# 简单显微镜
-	add_static(mk_box(Vector3(0.7, 0.12, 0.55)), Vector3(2.6, 0.98, -0.3), Color(0.22, 0.22, 0.28))
-	add_static(mk_cyl(0.05, 0.9), Vector3(2.45, 1.48, -0.3), Color(0.25, 0.25, 0.30))
-	add_static(mk_cyl(0.10, 0.28), Vector3(2.6, 2.0, -0.3), Color(0.20, 0.20, 0.26))
-	add_static(mk_cyl(0.06, 0.18), Vector3(2.45, 2.32, -0.3), Color(0.28, 0.28, 0.34))
+	PropKit.spawn(self, MICRO_SCOPE, Vector3(2.6, 0.96, -0.35), Vector3(0.0, -14.0, 0.0), {
+		"micro_base": MAT_MICRO,
+		"micro_pillar": MAT_MICRO,
+		"micro_arm": MAT_MICRO,
+		"micro_tube": MAT_MICRO,
+		"micro_stage": MAT_STEEL,
+		"micro_stage_hole": MAT_MICRO_LENS,
+		"micro_nosepiece": MAT_STEEL,
+		"micro_objective": MAT_STEEL,
+		"micro_eyepiece": MAT_STEEL,
+		"micro_knob": MAT_STEEL,
+	}, Vector3(4.4, 4.4, 4.4))
 
 	create_interactable("micro_verify",
 		Vector3(2.6, 1.6, -0.3), mk_box(Vector3(0.65, 0.95, 0.55)),

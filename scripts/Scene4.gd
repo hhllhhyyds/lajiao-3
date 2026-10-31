@@ -7,6 +7,21 @@ var is_dark_mode: bool = false
 var growth_timer: float = 0.0
 var timer_running: bool = false
 var _dish_taken: bool = false     # 培养皿已取出
+var _dish_label: LabelProjector.TagLabel
+
+const INCUBATOR_SCENE := preload("res://assets/props/incubator.glb")
+const BENCH_SCENE := preload("res://assets/props/lab_bench.glb")
+const DISH_SCENE := preload("res://assets/props/petri_dish.glb")
+const MAT_TILE := preload("res://materials/tile_wall.tres")
+const MAT_FLOOR := preload("res://materials/floor_epoxy.tres")
+const MAT_INC_DARK := preload("res://materials/incubator_dark.tres")
+const MAT_INC_INNER_DARK := preload("res://materials/incubator_inner_dark.tres")
+const MAT_INC_LIGHT := preload("res://materials/fridge_case.tres")
+const MAT_INC_INNER := preload("res://materials/fridge_inner.tres")
+const MAT_INC_GLASS := preload("res://materials/fridge_door.tres")
+const MAT_INC_GLASS_DARK := preload("res://materials/incubator_glass_dark.tres")
+const MAT_STEEL := preload("res://materials/stainless.tres")
+const MAT_DISPLAY := preload("res://materials/display_black.tres")
 
 var anther_node: Area3D           # 培养皿交互节点（跟随移动）
 
@@ -21,15 +36,18 @@ var ui_wait_btn: Button
 func _ready() -> void:
 	scene_number = 4
 	scene_title  = "愈伤组织诱导培养"
+	light_focus = Vector3(0.0, 1.25, -1.0)
+	light_radius = 4.2
+	light_intensity = 0.46
 	super._ready()
 
 # =====================================================================
 # 摄像机：俯视整个实验室，左暗箱、中操作台、右光照箱清晰可见
 # =====================================================================
 func _configure_camera() -> void:
-	camera.position = Vector3(0.0, 5.5, 9.0) * 0.8
-	camera.look_at(Vector3(0.0, 1.0, -0.5))
-	camera.fov = 58.0
+	camera.position = Vector3(0.25, 2.45, 5.90)
+	camera.look_at(Vector3(0.0, 1.12, -0.85))
+	camera.fov = 52.0
 
 # =====================================================================
 # 场景搭建
@@ -42,109 +60,134 @@ func _setup_scene() -> void:
 	_build_control_panel()
 
 func _build_room() -> void:
-	# 地板（浅灰绿）
-	add_static(mk_plane(Vector2(26, 26)), Vector3.ZERO, Color(0.72, 0.76, 0.72))
-	# 后墙
-	add_static(mk_box(Vector3(22, 6, 0.2)), Vector3(0, 3.0, -4.0), Color(0.88, 0.90, 0.86))
-	# 地脚线
-	add_static(mk_box(Vector3(22, 0.18, 0.18)), Vector3(0, 0.09, -3.9), Color(0.68, 0.70, 0.68))
-	# 天花板灯（发光）
+	var floor_mi := add_static(mk_plane(Vector2(26, 26)), Vector3.ZERO, Color.WHITE)
+	floor_mi.material_override = MAT_FLOOR
+	var wall := add_static(mk_box(Vector3(22, 6, 0.2)), Vector3(0, 3.0, -4.0), Color.WHITE)
+	wall.material_override = MAT_TILE
+	add_static(mk_box(Vector3(22, 0.18, 0.18)), Vector3(0, 0.09, -3.9), Color(0.30, 0.32, 0.33))
+
+	# 顶部灯带
 	for xi in [-4.0, 0.0, 4.0]:
 		var lmat := StandardMaterial3D.new()
-		lmat.albedo_color = Color(1.0, 0.98, 0.92)
-		lmat.emission_enabled = true; lmat.emission = Color(0.55, 0.52, 0.30)
-		var lmi := MeshInstance3D.new(); lmi.mesh = mk_box(Vector3(1.6, 0.06, 0.5))
-		lmi.material_override = lmat; lmi.position = Vector3(xi, 4.5, -1.0)
+		lmat.albedo_color = Color(1.0, 0.99, 0.95)
+		lmat.emission_enabled = true
+		lmat.emission = Color(0.80, 0.80, 0.74)
+		lmat.emission_energy_multiplier = 1.5
+		var lmi := MeshInstance3D.new()
+		lmi.mesh = mk_box(Vector3(1.8, 0.05, 0.36))
+		lmi.material_override = lmat
+		lmi.position = Vector3(xi, 4.3, -0.6)
 		add_child(lmi)
 
-# ----- 左：高温暗培养箱 -----
-func _build_dark_incubator() -> void:
-	# 主体（半透明深蓝灰，可看到内部花药）
-	add_glass(mk_box(Vector3(2.2, 2.6, 1.5)), Vector3(-4.5, 1.3, -2.2), Color(0.22, 0.24, 0.38, 0.38))
-	# 前门面板（更透明，像玻璃门）
-	add_glass(mk_box(Vector3(2.0, 2.4, 0.06)), Vector3(-4.5, 1.3, -1.44), Color(0.32, 0.32, 0.48, 0.22))
-	# 门缝线（亮色条纹，增加质感）
-	add_static(mk_box(Vector3(0.02, 2.2, 0.04)), Vector3(-4.5, 1.3, -1.40), Color(0.55, 0.55, 0.68))
-	# 门把手
-	add_static(mk_cyl(0.05, 0.35), Vector3(-3.65, 1.3, -1.40),
-		Color(0.75, 0.78, 0.80), Vector3(90, 0, 0))
-	# LED 温度显示屏（发光绿）
-	var disp_mat := StandardMaterial3D.new()
-	disp_mat.albedo_color = Color(0.05, 0.85, 0.20)
-	disp_mat.emission_enabled = true; disp_mat.emission = Color(0.0, 0.55, 0.08)
-	var disp_mi := MeshInstance3D.new(); disp_mi.mesh = mk_box(Vector3(0.65, 0.22, 0.02))
-	disp_mi.material_override = disp_mat; disp_mi.position = Vector3(-3.75, 2.25, -1.42)
-	add_child(disp_mi)
-	# 底座
-	add_static(mk_box(Vector3(2.4, 0.14, 1.7)), Vector3(-4.5, 0.07, -2.2), Color(0.18, 0.18, 0.28))
+## 暗培养箱 / 光照培养箱共用同一套箱体模型，只换材质和内部灯
+func _spawn_incubator(pos: Vector3, dark: bool) -> void:
+	var mapping := {
+		"incubator_body": MAT_INC_DARK if dark else MAT_INC_LIGHT,
+		"incubator_recess": MAT_INC_INNER_DARK if dark else MAT_INC_INNER,
+		"incubator_shelf": MAT_STEEL,
+		"incubator_frame": MAT_STEEL,
+		"incubator_handle": MAT_STEEL,
+		"incubator_foot": MAT_STEEL,
+		"incubator_glass": MAT_INC_GLASS_DARK if dark else MAT_INC_GLASS,
+		"incubator_panel": MAT_DISPLAY,
+		"incubator_display": MAT_DISPLAY,
+	}
+	PropKit.spawn(self, INCUBATOR_SCENE, pos, Vector3.ZERO, mapping, Vector3(1.6, 1.35, 1.35))
 
-	create_interactable("dark_incubator",
-		Vector3(-4.5, 1.3, -2.0),
-		mk_box(Vector3(2.2, 2.6, 1.8)),
-		Color(0, 0, 0, 0), Color(0.60, 0.60, 0.85), "高温暗培养箱")
-	interactables["dark_incubator"]["area"].get_child(0).visible = false
-	attach_label3d("dark_incubator", "高温暗培养箱", Vector3(0, 1.85, 0), 40, Color(0.82, 0.80, 1.0))
+	# 隔板上摆几个培养皿，空柜子看起来像道具
+	var dish_mat := StandardMaterial3D.new()
+	dish_mat.albedo_color = Color(0.90, 0.91, 0.88)
+	dish_mat.roughness = 0.35
+	for i in 4:
+		var shelf_z: float = (0.34 + (i % 2) * 0.52) * 1.35
+		var dish := MeshInstance3D.new()
+		dish.mesh = mk_cyl(0.085, 0.026)
+		dish.material_override = dish_mat
+		dish.position = pos + Vector3(-0.22 + (i % 2) * 0.44, shelf_z + 0.020, 0.02)
+		add_child(dish)
 
-# ----- 右：光照培养箱 -----
-func _build_light_incubator() -> void:
-	# 主体（半透明乳白，可看到内部灯管和培养物）
-	add_glass(mk_box(Vector3(2.2, 2.6, 1.5)), Vector3(4.5, 1.3, -2.2), Color(0.90, 0.92, 0.88, 0.30))
-	# 前门（淡蓝玻璃，高度透明）
-	add_glass(mk_box(Vector3(2.0, 2.4, 0.06)), Vector3(4.5, 1.3, -1.44), Color(0.68, 0.82, 0.96, 0.20))
-	# 门缝
-	add_static(mk_box(Vector3(0.02, 2.2, 0.04)), Vector3(4.5, 1.3, -1.40), Color(0.50, 0.65, 0.80))
-	# 内部发光灯管（×3）
+	# 箱内照明：光照箱是冷白灯管，暗箱只留一点门缝微光
+	if dark:
+		return
 	for i in 3:
 		var lmat := StandardMaterial3D.new()
-		lmat.albedo_color = Color(1.0, 0.98, 0.88)
-		lmat.emission_enabled = true; lmat.emission = Color(0.65, 0.60, 0.20)
-		var lmi := MeshInstance3D.new(); lmi.mesh = mk_cyl(0.035, 1.7)
-		lmi.material_override = lmat
-		lmi.position = Vector3(4.5, 2.4 - i * 0.55, -2.2)
-		lmi.rotation_degrees = Vector3(0, 0, 90)
-		add_child(lmi)
-	# 门把手
-	add_static(mk_cyl(0.05, 0.35), Vector3(5.35, 1.3, -1.40),
-		Color(0.55, 0.58, 0.60), Vector3(90, 0, 0))
-	# 底座
-	add_static(mk_box(Vector3(2.4, 0.14, 1.7)), Vector3(4.5, 0.07, -2.2), Color(0.72, 0.74, 0.70))
+		lmat.albedo_color = Color(1.0, 0.99, 0.92)
+		lmat.emission_enabled = true
+		lmat.emission = Color(0.92, 0.94, 0.86)
+		lmat.emission_energy_multiplier = 2.4
+		var tube_mi := MeshInstance3D.new()
+		tube_mi.mesh = mk_cyl(0.022, 0.95)
+		tube_mi.material_override = lmat
+		tube_mi.rotation_degrees = Vector3(0, 0, 90)
+		tube_mi.position = pos + Vector3(0.0, 1.24 - i * 0.33, -0.25)
+		add_child(tube_mi)
+
+	var glow := OmniLight3D.new()
+	glow.position = pos + Vector3(0.0, 1.0, -0.15)
+	glow.light_color = Color(0.86, 0.94, 1.0)
+	glow.light_energy = 1.3
+	glow.omni_range = 2.6
+	add_child(glow)
+
+func _build_dark_incubator() -> void:
+	_spawn_incubator(Vector3(-3.3, 0.0, -2.2), true)
+
+	create_interactable("dark_incubator",
+		Vector3(-3.3, 1.3, -2.0),
+		mk_box(Vector3(1.9, 2.6, 1.6)),
+		Color(0, 0, 0, 0), Color(0.60, 0.60, 0.85), "高温暗培养箱")
+	interactables["dark_incubator"]["area"].get_child(0).visible = false
+	attach_label3d("dark_incubator", "高温暗培养箱（33–37 ℃，黑暗）", Vector3(0, 1.75, 0), 40, Color(0.82, 0.80, 1.0))
+
+func _build_light_incubator() -> void:
+	_spawn_incubator(Vector3(3.3, 0.0, -2.2), false)
 
 	create_interactable("light_incubator",
-		Vector3(4.5, 1.3, -2.0),
-		mk_box(Vector3(2.2, 2.6, 1.8)),
+		Vector3(3.3, 1.3, -2.0),
+		mk_box(Vector3(1.9, 2.6, 1.6)),
 		Color(0, 0, 0, 0), Color(1.0, 1.0, 0.72), "光照培养箱")
 	interactables["light_incubator"]["area"].get_child(0).visible = false
-	attach_label3d("light_incubator", "光照培养箱", Vector3(0, 1.85, 0), 40, Color(0.88, 1.0, 0.62))
+	attach_label3d("light_incubator", "光照培养箱（25 ℃，光照）", Vector3(0, 1.75, 0), 40, Color(0.88, 1.0, 0.62))
 
-# ----- 中：操作台 + 培养皿 -----
 func _build_operation_table() -> void:
-	# 台腿（四根）
-	for xo in [-0.9, 0.9]:
-		for zo in [-0.5, 0.8]:
-			add_static(mk_box(Vector3(0.09, 0.92, 0.09)),
-				Vector3(xo, 0.46, zo), Color(0.50, 0.52, 0.55))
-	# 台面
-	add_static(mk_box(Vector3(2.4, 0.09, 1.6)), Vector3(0.0, 0.97, 0.15), Color(0.95, 0.96, 0.92))
-	# 台面边沿（深色）
-	add_static(mk_box(Vector3(2.42, 0.04, 1.62)), Vector3(0.0, 0.93, 0.15), Color(0.45, 0.48, 0.45))
-	# 下层板
-	add_static(mk_box(Vector3(2.2, 0.05, 1.4)), Vector3(0.0, 0.42, 0.15), Color(0.75, 0.78, 0.75))
+	PropKit.spawn(self, BENCH_SCENE, Vector3(0.0, 0.0, 0.55), Vector3.ZERO, {}, Vector3(1.0, 1.0, 1.0))
 
-	# 培养皿（放在台面中央）
-	# 皿壁（深色圆环）
-	add_static(mk_cyl(0.55, 0.06), Vector3(0.0, 1.03, 0.15), Color(0.32, 0.40, 0.32))
-	# 皿内壁（奶白）
-	add_static(mk_cyl(0.48, 0.07), Vector3(0.0, 1.06, 0.15), Color(0.96, 0.95, 0.90))
-	# 花药内容物（金黄色，足够高便于点击）
+	# 培养皿：真实模型 + 金黄色内容物
 	anther_node = create_interactable("anther_dish",
-		Vector3(0.0, 1.18, 0.15),
-		mk_cyl(0.40, 0.26),
+		Vector3(0.0, 1.06, 0.55),
+		mk_cyl(0.26, 0.06),
 		Color(0.85, 0.70, 0.18), Color(1.0, 0.90, 0.25), "诱导愈伤组织培养皿")
-	attach_label3d("anther_dish", "诱导愈伤组织培养皿\n（点击取出）", Vector3(0, 0.47, 0), 42, Color(1.0, 0.95, 0.60))
+	anther_node.get_child(0).visible = false
 
-# =====================================================================
-# 右侧条件控制面板 UI
-# =====================================================================
+	PropKit.spawn(anther_node, DISH_SCENE, Vector3(0.0, -0.02, 0.0), Vector3.ZERO, {
+		"petri_dish_lid": MAT_INC_GLASS,
+		"petri_dish_base": MAT_INC_INNER,
+	}, Vector3(5.0, 5.0, 5.0))
+
+	var agar := MeshInstance3D.new()
+	agar.mesh = mk_cyl(0.26, 0.02)
+	var amat := StandardMaterial3D.new()
+	amat.albedo_color = Color(0.80, 0.66, 0.20)
+	amat.roughness = 0.45
+	agar.material_override = amat
+	agar.position = Vector3(0.0, 0.012, 0.0)
+	anther_node.add_child(agar)
+
+	# 台面上的花药小块（散落在皿内）
+	for i in 6:
+		var ang := i * 1.05
+		var fleck := MeshInstance3D.new()
+		fleck.mesh = mk_sphere(0.018)
+		var fmat := StandardMaterial3D.new()
+		fmat.albedo_color = Color(0.94, 0.86, 0.42)
+		fmat.roughness = 0.55
+		fleck.material_override = fmat
+		fleck.position = Vector3(cos(ang) * 0.13, 0.028, sin(ang) * 0.13)
+		anther_node.add_child(fleck)
+
+	_dish_label = attach_label3d("anther_dish", "诱导愈伤组织培养皿\n（点击取出）",
+		Vector3(0, 0.34, 0), 42, Color(1.0, 0.95, 0.60))
+
 func _build_control_panel() -> void:
 	var cp := Panel.new()
 	cp.anchor_right = 1.0
@@ -281,7 +324,7 @@ func _on_interactable_clicked(obj_name: String) -> void:
 					flash_message("需要切换为【黑暗模式】才能进行热激培养！\n请点击右侧面板的光照切换按钮！", false)
 				else:
 					flash_message("培养皿已放入高温暗培养箱 ✓", true)
-					_animate_dish_to(Vector3(-4.5, 1.3, -2.0))
+					_animate_dish_to(Vector3(-3.3, 0.98, -2.2))
 					await get_tree().create_timer(1.0).timeout
 					advance_step()
 					ui_wait_btn.visible = true
@@ -293,7 +336,7 @@ func _on_interactable_clicked(obj_name: String) -> void:
 					flash_message("需要切换为【光照模式】才能进行光照培养！\n请点击右侧面板的光照切换按钮！", false)
 				else:
 					flash_message("愈伤组织已转入光照培养箱 ✓", true)
-					_animate_dish_to(Vector3(4.5, 1.3, -2.0))
+					_animate_dish_to(Vector3(3.3, 0.98, -2.2))
 					await get_tree().create_timer(1.0).timeout
 					advance_step()
 					ui_wait_btn.visible = true
@@ -306,6 +349,8 @@ func _animate_dish_to(target: Vector3) -> void:
 	var tw := create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_property(anther_node, "position",
 		target + Vector3(0, 0.2, 0), 0.8)
+	if _dish_label:
+		_dish_label.visible = false
 
 # =====================================================================
 # 控制面板回调

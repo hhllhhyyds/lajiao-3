@@ -624,6 +624,171 @@ def build_anther() -> None:
     export(root, "anther.glb")
 
 
+
+def build_incubator() -> None:
+    """培养箱：钢板箱体 + 内胆 + 三层隔板 + 玻璃门 + 控制条。
+    原点在底面中心，正面朝 -Y（导出后 +Z）。"""
+    reset_scene()
+    shell = new_material("inc_shell", (0.80, 0.82, 0.82), 0.32, 0.25)
+    inner = new_material("inc_inner", (0.92, 0.94, 0.95), 0.42)
+    steel = new_material("inc_steel", (0.62, 0.64, 0.66), 0.24, 1.0)
+    glass = new_material("inc_glass", (0.70, 0.82, 0.90), 0.06, 0.0)
+    glass.blend_method = "BLEND"
+    dark = new_material("inc_dark", (0.04, 0.06, 0.08), 0.15)
+
+    root = empty("incubator")
+    parts = []
+
+    W, D, H = 1.20, 0.78, 1.95
+    t = 0.022
+
+    # 箱体做成五面板而不是实心块，否则门后面是一堵墙，内腔根本看不到
+    parts.append(box("incubator_back", (W, t, H), (0.0, D * 0.5 - t * 0.5, H * 0.5), shell))
+    parts.append(box("incubator_side_l", (t, D, H), (-W * 0.5 + t * 0.5, 0.0, H * 0.5), shell))
+    parts.append(box("incubator_side_r", (t, D, H), (W * 0.5 - t * 0.5, 0.0, H * 0.5), shell))
+    parts.append(box("incubator_top", (W, D, t), (0.0, 0.0, H - t * 0.5), shell))
+    parts.append(box("incubator_bottom", (W, D, t), (0.0, 0.0, t * 0.5), shell))
+
+    # 内胆：贴在背板前面的浅色板，让内腔有层次
+    parts.append(box("incubator_recess", (W - 0.06, 0.012, H - 0.10),
+                     (0.0, D * 0.5 - t - 0.008, H * 0.5), inner))
+
+    # 隔板
+    for i, z in enumerate((0.34, 0.86, 1.38)):
+        parts.append(box(f"incubator_shelf_{i}", (W - 0.08, D - 0.08, 0.014),
+                         (0.0, 0.0, z), steel))
+
+    # 门框（贴在正面开口四周）
+    ow, oh = W - 0.10, H - 0.22
+    fw = 0.030
+    z0 = 0.11
+    parts.append(box("incubator_frame_t", (ow + fw * 2, 0.030, fw),
+                     (0.0, -D * 0.5, z0 + oh), steel))
+    parts.append(box("incubator_frame_b", (ow + fw * 2, 0.030, fw),
+                     (0.0, -D * 0.5, z0), steel))
+    parts.append(box("incubator_frame_l", (fw, 0.030, oh),
+                     (-ow * 0.5 - fw * 0.5, -D * 0.5, z0 + oh * 0.5), steel))
+    parts.append(box("incubator_frame_r", (fw, 0.030, oh),
+                     (ow * 0.5 + fw * 0.5, -D * 0.5, z0 + oh * 0.5), steel))
+
+    # 玻璃门
+    parts.append(box("incubator_glass", (ow, 0.010, oh),
+                     (0.0, -D * 0.5 - 0.006, z0 + oh * 0.5), glass))
+
+    # 把手
+    handle = cylinder("incubator_handle", 0.013, 0.26,
+                      (ow * 0.5 - 0.05, -D * 0.5 - 0.045, z0 + oh * 0.5),
+                      steel, vertices=20)
+    handle.rotation_euler = (math.radians(90.0), 0.0, 0.0)
+    parts.append(handle)
+
+    # 顶部控制条
+    parts.append(box("incubator_panel", (W - 0.10, 0.09, 0.09),
+                     (0.0, -D * 0.5 + 0.05, H - 0.06), dark))
+
+    # 底脚
+    for sx in (-1.0, 1.0):
+        for sy in (-1.0, 1.0):
+            parts.append(cylinder(f"incubator_foot_{sx:+.0f}{sy:+.0f}", 0.03, 0.05,
+                                  (sx * (W * 0.5 - 0.08), sy * (D * 0.5 - 0.08), 0.025),
+                                  steel, vertices=16))
+
+    parent_all(root, parts)
+    export(root, "incubator.glb")
+
+
+def build_plantlet() -> None:
+    """组培苗：短茎、几片小叶、下方根系。原点是琼脂面（根颈处）。"""
+    reset_scene()
+    leaf_a = new_material("pl_leaf_a", (0.18, 0.36, 0.12), 0.58)
+    leaf_b = new_material("pl_leaf_b", (0.22, 0.42, 0.15), 0.55)
+    stem_m = new_material("pl_stem", (0.42, 0.58, 0.26), 0.60)
+    root_m = new_material("pl_root", (0.88, 0.90, 0.82), 0.55)
+
+    root = empty("plantlet")
+    parts = []
+
+    parts.append(plant_lib.tube("plantlet_stem", [
+        Vector((0.0, 0.0, 0.0)), Vector((0.002, 0.0, 0.012)),
+        Vector((0.001, 0.001, 0.024)), Vector((0.0, 0.002, 0.034)),
+    ], [0.0022, 0.0019, 0.0016, 0.0013], stem_m, seg=8))
+
+    mats = [leaf_a, leaf_b]
+    for i in range(7):
+        az = i * (2.0 * math.pi / 7.0) + 0.3
+        z = 0.008 + i * 0.0042
+        elev = math.radians(18.0 + i * 4.0)
+        length = 0.020 + (0.006 if i % 2 else 0.0)
+        leaf = plant_lib.blade(f"plantlet_leaf_{i}", length, length * 0.62,
+                               mats[i % 2], droop=0.30, cup=0.20)
+        plant_lib.place(leaf, Vector((0.0, 0.0, z)), rot_z=az, rot_y=-elev)
+        parts.append(leaf)
+
+    # 根系：四条朝下的细丝
+    for i in range(4):
+        az = i * (2.0 * math.pi / 4.0) + 0.6
+        r = 0.016
+        parts.append(plant_lib.tube(f"plantlet_root_{i}", [
+            Vector((0.0, 0.0, 0.0)),
+            Vector((math.cos(az) * r * 0.35, math.sin(az) * r * 0.35, -0.012)),
+            Vector((math.cos(az) * r * 0.7, math.sin(az) * r * 0.7, -0.026)),
+            Vector((math.cos(az) * r, math.sin(az) * r, -0.040)),
+        ], [0.0011, 0.0009, 0.0007, 0.0004], root_m, seg=6))
+
+    parent_all(root, parts)
+    export(root, "plantlet.glb")
+
+
+def build_microscope() -> None:
+    """显微镜：底座、弯臂、载物台、物镜转盘、目镜、调焦旋钮。原点底面中心，正面 -Y。"""
+    reset_scene()
+    body = new_material("ms_body", (0.13, 0.14, 0.16), 0.30, 0.35)
+    metal = new_material("ms_metal", (0.66, 0.68, 0.70), 0.22, 1.0)
+    lens = new_material("ms_lens", (0.06, 0.10, 0.14), 0.08, 0.0)
+    stage_m = new_material("ms_stage", (0.20, 0.21, 0.23), 0.35, 0.20)
+
+    root = empty("microscope")
+    parts = []
+
+    # 底座（马蹄形用圆角长方体近似）
+    parts.append(box("micro_base", (0.22, 0.26, 0.045), (0.0, 0.01, 0.0225), body, bevel=0.02, segments=4))
+
+    # 立柱
+    parts.append(box("micro_pillar", (0.055, 0.05, 0.30), (0.0, 0.10, 0.02 + 0.15), body))
+
+    # 弯臂（从立柱顶弯向前）
+    parts.append(plant_lib.tube("micro_arm", [
+        Vector((0.0, 0.10, 0.31)), Vector((0.0, 0.085, 0.345)),
+        Vector((0.0, 0.055, 0.360)), Vector((0.0, 0.030, 0.358)),
+    ], [0.026, 0.024, 0.022, 0.020], body, seg=14))
+
+    # 载物台
+    parts.append(box("micro_stage", (0.16, 0.15, 0.012), (0.0, 0.005, 0.175), stage_m))
+    parts.append(box("micro_stage_hole", (0.035, 0.035, 0.014), (0.0, -0.01, 0.176), lens))
+
+    # 物镜转盘 + 三个物镜
+    parts.append(cylinder("micro_nosepiece", 0.045, 0.022, (0.0, 0.005, 0.232), metal, vertices=32))
+    for i, ang in enumerate((0.0, 2.094, 4.188)):
+        parts.append(plant_lib.tube(f"micro_objective_{i}", [
+            Vector((math.cos(ang) * 0.028, math.sin(ang) * 0.028 + 0.005, 0.226)),
+            Vector((math.cos(ang) * 0.028, math.sin(ang) * 0.028 + 0.005, 0.196)),
+        ], [0.011, 0.008], metal, seg=12))
+
+    # 镜筒 + 目镜
+    parts.append(cylinder("micro_tube", 0.020, 0.075, (0.0, 0.030, 0.335), body, vertices=24))
+    parts.append(cylinder("micro_eyepiece", 0.016, 0.030, (0.0, 0.030, 0.385), metal, vertices=24))
+
+    # 调焦旋钮
+    for sx in (-1.0, 1.0):
+        knob = cylinder(f"micro_knob_{sx:+.0f}", 0.022, 0.016,
+                        (sx * 0.035, 0.10, 0.115), metal, vertices=24)
+        knob.rotation_euler = (0.0, math.radians(90.0), 0.0)
+        parts.append(knob)
+
+    parent_all(root, parts)
+    export(root, "microscope.glb")
+
+
 def build_tube_rack() -> None:
     """试管架：底板 + 两侧壁 + 6 支试管。"""
     reset_scene()
@@ -685,6 +850,9 @@ def main() -> None:
     build_flask()
     build_tube_rack()
     build_pepper_plant()
+    build_incubator()
+    build_plantlet()
+    build_microscope()
     build_anther()
     build_room()
     print("完成")

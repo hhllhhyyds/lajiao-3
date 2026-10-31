@@ -22,17 +22,34 @@ var confirm_btn: Button
 var plant_status_labels: Array[Label] = []
 var plant_select_btns: Array[Button] = []
 
+const MICRO_SCOPE := preload("res://assets/props/microscope.glb")
+const PLANTLET_SCENE := preload("res://assets/props/plantlet.glb")
+const MAT_TILE := preload("res://materials/tile_wall.tres")
+const MAT_FLOOR := preload("res://materials/floor_epoxy.tres")
+const MAT_BENCH := preload("res://materials/epoxy_bench.tres")
+const MAT_STEEL := preload("res://materials/stainless.tres")
+const MAT_LEAF := preload("res://materials/plantlet_leaf.tres")
+const MAT_STEM := preload("res://materials/plantlet_stem.tres")
+const MAT_MICRO := preload("res://materials/microscope_body.tres")
+const MAT_MICRO_LENS := preload("res://materials/microscope_lens.tres")
+const MAT_JAR := preload("res://materials/glass_jar.tres")
+const MAT_AGAR := preload("res://materials/agar.tres")
+
 func _ready() -> void:
 	scene_number = 6
 	scene_title  = "倍性鉴定"
+	env_preset = "indoor"
+	light_focus = Vector3(0.0, 1.5, -0.2)
+	light_radius = 4.0
+	light_intensity = 0.55
 	# 随机化（保证至少1株单倍体）
 	plant_chromosomes[randi() % 4] = HAPLOID_N
 	plant_chromosomes[(randi() % 3 + 1 + plant_chromosomes.find(HAPLOID_N)) % 4] = DIPLOID_2N
 	super._ready()
 
 func _configure_camera() -> void:
-	camera.position = Vector3(0.0, 3.5, 8.5) * 1.1
-	camera.look_at(Vector3(0.0, 1.2, 0.0))
+	camera.position = Vector3(0.0, 2.45, 6.60)
+	camera.look_at(Vector3(0.0, 1.28, 0.05))
 	camera.fov = 50.0
 
 func _setup_scene() -> void:
@@ -42,58 +59,72 @@ func _setup_scene() -> void:
 	_build_microscope_overlay()
 
 func _build_lab() -> void:
-	add_static(mk_plane(Vector2(22, 22)), Vector3.ZERO, Color(0.82, 0.86, 0.84))
-	add_static(mk_box(Vector3(14, 4, 0.2)), Vector3(0, 2, -4), Color(0.90, 0.90, 0.88))
-	add_static(mk_box(Vector3(10, 0.16, 3.5)), Vector3(0, 0.90, -0.5), Color(0.88, 0.90, 0.86))
+	var floor_mi := add_static(mk_plane(Vector2(22, 22)), Vector3.ZERO, Color.WHITE)
+	floor_mi.material_override = MAT_FLOOR
+	var wall := add_static(mk_box(Vector3(14, 4, 0.2)), Vector3(0, 2, -4), Color.WHITE)
+	wall.material_override = MAT_TILE
+
+	# 台面（深色环氧）+ 不锈钢腿
+	var top := add_static(mk_box(Vector3(8.4, 0.10, 3.0)), Vector3(0, 0.92, -0.4), Color.WHITE)
+	top.material_override = MAT_BENCH
+	for xo in [-3.9, 3.9]:
+		for zo in [-1.7, 1.0]:
+			var leg := add_static(mk_box(Vector3(0.09, 0.87, 0.09)), Vector3(xo, 0.435, zo), Color.WHITE)
+			leg.material_override = MAT_STEEL
 
 func _build_microscope() -> void:
-	# 显微镜底座
-	add_static(mk_box(Vector3(0.8, 0.12, 0.6)), Vector3(0, 0.98, -0.5), Color(0.25, 0.25, 0.30))
-	# 镜臂
-	add_static(mk_cyl(0.06, 1.0), Vector3(-0.15, 1.5, -0.5), Color(0.28, 0.28, 0.32))
-	# 镜头
-	add_static(mk_cyl(0.12, 0.3), Vector3(0, 2.18, -0.5), Color(0.22, 0.22, 0.26))
-	add_static(mk_cyl(0.05, 0.45), Vector3(0, 2.0, -0.5), Color(0.20, 0.20, 0.24))
-	# 目镜
-	add_static(mk_cyl(0.07, 0.20), Vector3(-0.15, 2.42, -0.5), Color(0.30, 0.30, 0.35))
-	# 载物台
-	add_static(mk_box(Vector3(0.6, 0.06, 0.5)), Vector3(0, 1.55, -0.5), Color(0.35, 0.35, 0.38))
+	# 真实显微镜模型，放大到与场景比例匹配
+	PropKit.spawn(self, MICRO_SCOPE, Vector3(0.0, 0.97, -0.55), Vector3(0.0, 12.0, 0.0), {
+		"micro_base": MAT_MICRO,
+		"micro_pillar": MAT_MICRO,
+		"micro_arm": MAT_MICRO,
+		"micro_tube": MAT_MICRO,
+		"micro_stage": MAT_STEEL,
+		"micro_stage_hole": MAT_MICRO_LENS,
+		"micro_nosepiece": MAT_STEEL,
+		"micro_objective": MAT_STEEL,
+		"micro_eyepiece": MAT_STEEL,
+		"micro_knob": MAT_STEEL,
+	}, Vector3(4.6, 4.6, 4.6))
 
 	create_interactable("microscope",
-		Vector3(0.0, 1.7, -0.5), mk_box(Vector3(0.7, 1.0, 0.6)),
+		Vector3(0.0, 1.45, -0.55), mk_box(Vector3(0.9, 1.4, 0.8)),
 		Color(0.28, 0.28, 0.32, 0.0), Color(0.55, 0.55, 0.68), "显微镜（点击观察）")
 	interactables["microscope"]["area"].get_child(0).visible = false
-	var micro_lbl := add_label3d("显微镜\n（点击观察）", Vector3(0.0, 3.30, -0.5), 66, Color(0.75, 0.30, 1.0))
+	var micro_lbl := add_label3d("显微镜\n（点击观察）", Vector3(0.0, 2.55, -0.55), 62, Color(0.75, 0.30, 1.0))
 	micro_lbl.outline_size = 8
 	micro_lbl.outline_modulate = Color(0.2, 0.0, 0.3, 0.8)
 
 func _build_plants() -> void:
-	# 4株小植物（来自花药培养）
+	# 四株来自花药培养的组培苗，各带一个培养瓶
 	var names := ["A株", "B株", "C株", "D株"]
 	for i in 4:
-		var x := -4.5 + i * 3.0
+		var x := -3.3 + i * 2.2
 		var name := "plant_%d" % i
-		_draw_small_plant(Vector3(x, 1.0, 1.2), i)
+		_draw_small_plant(Vector3(x, 0.97, 1.0), i)
 		create_interactable(name,
-			Vector3(x, 1.5, 1.2), mk_cyl(0.35, 1.0),
+			Vector3(x, 1.45, 1.0), mk_cyl(0.40, 1.1),
 			Color(0.0, 0.0, 0.0, 0.0),
 			Color(0.85, 0.95, 0.55), "点击查看 %s 染色体" % names[i])
 		interactables[name]["area"].get_child(0).visible = false
-		var plant_lbl := add_label3d(names[i], Vector3(x, 2.6, 1.2), 56, Color(0.25, 0.95, 0.35))
+		var plant_lbl := add_label3d(names[i], Vector3(x, 2.28, 1.0), 52, Color(0.25, 0.95, 0.35))
 		plant_lbl.outline_size = 8
 		plant_lbl.outline_modulate = Color(0.0, 0.2, 0.0, 0.8)
 
 func _draw_small_plant(pos: Vector3, idx: int) -> void:
-	add_static(mk_cyl(0.06, 1.2), pos + Vector3(0, 0.6, 0), Color(0.22, 0.55, 0.22))
-	for j in 5:
-		var a := j * TAU / 5
-		add_static(mk_sphere(0.12), pos + Vector3(sin(a)*0.25, 0.5 + j*0.2, cos(a)*0.25),
-			Color(0.20, 0.55, 0.25))
-	# 花（白色/浅色）
-	var has_flower: bool = (plant_chromosomes[idx] == HAPLOID_N)
-	# 根系小示意
-	add_static(mk_cyl(0.03, 0.30), pos + Vector3(0.12, 0.08, 0), Color(0.78, 0.72, 0.58))
-	add_static(mk_cyl(0.03, 0.30), pos + Vector3(-0.08, 0.06, 0.1), Color(0.78, 0.72, 0.58))
+	# 培养瓶 + 组培苗
+	var jar := add_static(mk_cyl(0.30, 0.62), pos + Vector3(0, 0.31, 0), Color.WHITE)
+	jar.material_override = MAT_JAR
+	var agar := add_static(mk_cyl(0.27, 0.10), pos + Vector3(0, 0.08, 0), Color(0.70, 0.82, 0.66))
+	agar.material_override = MAT_AGAR
+
+	var plantlet := PropKit.spawn(self, PLANTLET_SCENE, pos + Vector3(0.0, 0.14, 0.0),
+		Vector3(0.0, float(idx) * 37.0, 0.0), {
+		"plantlet_leaf": MAT_LEAF,
+		"plantlet_stem": MAT_STEM,
+		"plantlet_root": MAT_LEAF,
+	}, Vector3(9.0, 9.0, 9.0))
+	plantlet.name = "plantlet_%d" % idx
 
 func _build_microscope_overlay() -> void:
 	micro_overlay = Control.new()

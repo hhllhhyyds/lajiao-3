@@ -12,6 +12,18 @@ var callus_root: Node3D       # 愈伤组织视觉节点（用于移动动画）
 var shoot_plant_node: Node3D  # 生芽植株节点（生长动画 + 移动动画）
 var root_node: Node3D         # 生根节点
 var root_strands: Array = []  # 预建好的根系条目，用于生长动画
+var shoot_model: Node3D          # 组培苗模型（随进度放大）
+
+const FLASK_SCENE := preload("res://assets/props/conical_flask.glb")
+const PLANTLET_SCENE := preload("res://assets/props/plantlet.glb")
+const MAT_TILE := preload("res://materials/tile_wall.tres")
+const MAT_FLOOR := preload("res://materials/floor_epoxy.tres")
+const MAT_BENCH := preload("res://materials/epoxy_bench.tres")
+const MAT_STEEL := preload("res://materials/stainless.tres")
+const MAT_FLASK := preload("res://materials/glassware_clear.tres")
+const MAT_JAR := preload("res://materials/glass_jar.tres")
+const MAT_PLANTLET_LEAF := preload("res://materials/plantlet_leaf.tres")
+const MAT_PLANTLET_STEM := preload("res://materials/plantlet_stem.tres")
 
 # UI
 var shoot_lbl: Label
@@ -37,34 +49,32 @@ func _setup_scene() -> void:
 	_build_info_panel()
 
 func _build_room() -> void:
-	add_static(mk_plane(Vector2(22, 22)), Vector3.ZERO, Color(0.80, 0.84, 0.80))
-	add_static(mk_box(Vector3(16, 4.5, 0.2)), Vector3(0, 2.25, -4.5), Color(0.88, 0.90, 0.86))
-	# 实验台
-	add_static(mk_box(Vector3(11.0, 0.12, 3.0)), Vector3(0, 0.94, 0.0), Color(0.88, 0.90, 0.84))
+	var floor_mi := add_static(mk_plane(Vector2(22, 22)), Vector3.ZERO, Color.WHITE)
+	floor_mi.material_override = MAT_FLOOR
+	var wall := add_static(mk_box(Vector3(16, 4.5, 0.2)), Vector3(0, 2.25, -4.5), Color.WHITE)
+	wall.material_override = MAT_TILE
+
+	# 台面 + 不锈钢腿
+	var top := add_static(mk_box(Vector3(11.0, 0.12, 3.0)), Vector3(0, 0.94, 0.0), Color.WHITE)
+	top.material_override = MAT_BENCH
 	for xo in [-5.0, 5.0]:
 		for zo in [-1.2, 1.2]:
-			add_static(mk_box(Vector3(0.10, 0.94, 0.10)), Vector3(xo, 0.47, zo), Color(0.55, 0.55, 0.58))
+			var leg := add_static(mk_box(Vector3(0.10, 0.94, 0.10)), Vector3(xo, 0.47, zo), Color.WHITE)
+			leg.material_override = MAT_STEEL
 
-	# 透明玻璃罩（覆盖整个实验台）
-	add_glass(mk_box(Vector3(11.4, 3.20, 3.4)), Vector3(0.0, 2.60, 0.0), Color(0.72, 0.88, 0.98, 0.10))
-
-	# 顶灯（玻璃罩内部顶端）
+	# 顶灯：冷白柔光，取代原来的黄色点光源（能量 2.5 直接过曝）
 	for i in 3:
 		var lx := -3.0 + i * 3.0
-		add_static(mk_box(Vector3(2.2, 0.06, 0.7)), Vector3(lx, 4.10, 0.0), Color(0.95, 0.95, 0.88))
 		var lmat := StandardMaterial3D.new()
-		lmat.albedo_color = Color(1.0, 0.95, 0.60)
+		lmat.albedo_color = Color(1.0, 1.0, 0.97)
 		lmat.emission_enabled = true
-		lmat.emission = Color(1.0, 0.85, 0.20)
-		var lmi := MeshInstance3D.new(); lmi.mesh = mk_box(Vector3(2.0, 0.04, 0.6))
-		lmi.material_override = lmat; lmi.position = Vector3(lx, 4.08, 0.0); add_child(lmi)
-		# 点光源：发出黄色光照亮场景
-		var omni := OmniLight3D.new()
-		omni.position = Vector3(lx, 3.90, 0.0)
-		omni.light_color = Color(1.0, 0.88, 0.35)
-		omni.light_energy = 2.5
-		omni.omni_range = 6.0
-		add_child(omni)
+		lmat.emission = Color(0.92, 0.94, 0.92)
+		lmat.emission_energy_multiplier = 1.4
+		var lmi := MeshInstance3D.new()
+		lmi.mesh = mk_box(Vector3(2.4, 0.04, 0.5))
+		lmi.material_override = lmat
+		lmi.position = Vector3(lx, 3.90, 0.0)
+		add_child(lmi)
 
 func _build_callus() -> void:
 	# 培养皿底座（中央）
@@ -76,13 +86,18 @@ func _build_callus() -> void:
 	callus_root.name = "CallusRoot"
 	add_child(callus_root)
 
-	for i in 12:
-		var a := i * TAU / 12
-		var r := 0.10 + (i % 5) * 0.04
-		var h := (i % 4) * 0.05
-		var sp := MeshInstance3D.new(); sp.mesh = mk_sphere(0.09 + (i % 3) * 0.03)
+	# 愈伤组织：一堆大小不一、颜色略异的瘤状体，堆成一坨
+	for i in 26:
+		var a := i * 2.399
+		var r := 0.03 + sqrt(float(i) / 26.0) * 0.20
+		var h := 0.010 + (sin(float(i) * 1.7) * 0.5 + 0.5) * 0.075
+		var sp := MeshInstance3D.new()
+		var sz := 0.042 + float(i % 5) * 0.011
+		sp.mesh = mk_sphere(sz)
 		var mat := StandardMaterial3D.new()
-		mat.albedo_color = Color(0.35 + (i % 4) * 0.05, 0.70 + (i % 3) * 0.06, 0.32 + (i % 4) * 0.04)
+		mat.albedo_color = Color(0.52 + float(i % 4) * 0.04,
+			0.74 + float(i % 3) * 0.05, 0.44 + float(i % 5) * 0.03)
+		mat.roughness = 0.72
 		sp.material_override = mat
 		sp.position = Vector3(sin(a) * r, h, cos(a) * r)
 		callus_root.add_child(sp)
@@ -96,19 +111,19 @@ func _build_callus() -> void:
 
 func _build_shoot_medium() -> void:
 	# 生芽培养基架子（左侧）
-	add_static(mk_box(Vector3(2.60, 0.12, 2.40)), Vector3(-4.2, 1.00, 0.0), Color(0.72, 0.74, 0.70))
 
-	# 锥形瓶（半透明玫瑰色，含细胞分裂素，可看到内部培养物）
-	var flask := MeshInstance3D.new(); flask.mesh = mk_cyl(0.50, 0.88)
-	var fm := StandardMaterial3D.new()
-	fm.albedo_color = Color(0.25, 0.55, 0.95, 0.32); fm.roughness = 0.12; fm.metallic = 0.05
-	fm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	fm.cull_mode = BaseMaterial3D.CULL_DISABLED
-	flask.material_override = fm; flask.position = Vector3(-4.2, 1.50, 0.0); add_child(flask)
-
-	var medium := MeshInstance3D.new(); medium.mesh = mk_cyl(0.44, 0.40)
-	var mm := StandardMaterial3D.new(); mm.albedo_color = Color(0.30, 0.58, 0.92); mm.roughness = 0.6
-	medium.material_override = mm; medium.position = Vector3(-4.2, 1.26, 0.0); add_child(medium)
+	# 锥形瓶（真实玻璃器皿模型），瓶内培养基单独做一层
+	PropKit.spawn(self, FLASK_SCENE, Vector3(-4.2, 1.00, 0.0), Vector3.ZERO, {
+		"flask_body": MAT_JAR,
+	}, Vector3(7.4, 7.4, 7.4))
+	var medium := MeshInstance3D.new()
+	medium.mesh = mk_cyl(0.29, 0.44)
+	var mm := StandardMaterial3D.new()
+	mm.albedo_color = Color(0.34, 0.62, 0.92)
+	mm.roughness = 0.5
+	medium.material_override = mm
+	medium.position = Vector3(-4.2, 1.20, 0.0)
+	add_child(medium)
 
 	create_interactable("shoot_medium",
 		Vector3(-4.2, 1.52, 0.0), mk_cyl(0.55, 1.00),
@@ -126,19 +141,18 @@ func _build_shoot_medium() -> void:
 
 func _build_root_medium() -> void:
 	# 生根培养基架子（右侧）
-	add_static(mk_box(Vector3(2.60, 0.12, 2.40)), Vector3(4.2, 1.00, 0.0), Color(0.72, 0.74, 0.70))
 
-	# 锥形瓶（半透明棕褐色，含生长素，可看到内部根系）
-	var flask := MeshInstance3D.new(); flask.mesh = mk_cyl(0.50, 0.88)
-	var fm := StandardMaterial3D.new()
-	fm.albedo_color = Color(0.72, 0.58, 0.42, 0.32); fm.roughness = 0.12; fm.metallic = 0.05
-	fm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	fm.cull_mode = BaseMaterial3D.CULL_DISABLED
-	flask.material_override = fm; flask.position = Vector3(4.2, 1.50, 0.0); add_child(flask)
-
-	var medium := MeshInstance3D.new(); medium.mesh = mk_cyl(0.44, 0.40)
-	var mm := StandardMaterial3D.new(); mm.albedo_color = Color(0.78, 0.62, 0.46); mm.roughness = 0.6
-	medium.material_override = mm; medium.position = Vector3(4.2, 1.26, 0.0); add_child(medium)
+	PropKit.spawn(self, FLASK_SCENE, Vector3(4.2, 1.00, 0.0), Vector3.ZERO, {
+		"flask_body": MAT_JAR,
+	}, Vector3(7.4, 7.4, 7.4))
+	var medium := MeshInstance3D.new()
+	medium.mesh = mk_cyl(0.29, 0.44)
+	var mm := StandardMaterial3D.new()
+	mm.albedo_color = Color(0.82, 0.66, 0.48)
+	mm.roughness = 0.5
+	medium.material_override = mm
+	medium.position = Vector3(4.2, 1.20, 0.0)
+	add_child(medium)
 
 	create_interactable("root_medium",
 		Vector3(4.2, 1.52, 0.0), mk_cyl(0.55, 1.00),
@@ -321,27 +335,13 @@ func _animate_shoot_to_root() -> void:
 
 # ── 生芽植株：逐帧重建（progress 0→1） ──
 func _build_shoot_plant(progress: float) -> void:
-	for ch in shoot_plant_node.get_children():
-		ch.queue_free()
-	if progress <= 0.0: return
-	var h := progress * 1.0
-	# 茎
-	var stem := MeshInstance3D.new(); stem.mesh = mk_cyl(0.04, h)
-	var sm := StandardMaterial3D.new(); sm.albedo_color = Color(0.20, 0.58, 0.24)
-	stem.material_override = sm; stem.position = Vector3(0, h * 0.5, 0)
-	shoot_plant_node.add_child(stem)
-	# 叶片（随进度增加）
-	var leaf_count := int(progress * 5) + 1
-	for i in leaf_count:
-		var a := i * TAU / leaf_count + i * 0.5
-		var lh := h * (0.25 + i * 0.15)
-		var ls := 0.07 + progress * 0.07
-		var leaf := MeshInstance3D.new(); leaf.mesh = mk_sphere(ls)
-		var lm := StandardMaterial3D.new()
-		lm.albedo_color = Color(0.22, 0.68 + progress * 0.12, 0.26)
-		leaf.material_override = lm
-		leaf.position = Vector3(sin(a) * (0.14 + progress * 0.08), lh, cos(a) * (0.14 + progress * 0.08))
-		shoot_plant_node.add_child(leaf)
+	if progress <= 0.0:
+		return
+	if shoot_model == null or not is_instance_valid(shoot_model):
+		shoot_model = PropKit.spawn(shoot_plant_node, PLANTLET_SCENE, Vector3.ZERO,
+			Vector3.ZERO, {"plantlet_leaf": MAT_PLANTLET_LEAF, "plantlet_stem": MAT_PLANTLET_STEM,
+			"plantlet_root": MAT_PLANTLET_LEAF}, Vector3.ONE * 0.01)
+	shoot_model.scale = Vector3.ONE * (0.01 + progress * 7.0)
 
 # ── 预建根系条（初始 scale=0，之后逐步放大） ──
 var _root_defs := [
@@ -363,7 +363,7 @@ func _build_root_strands() -> void:
 		var len: float = rd["len"]
 		var rx: float = rd["rx"]
 		var mi := MeshInstance3D.new()
-		mi.mesh = mk_cyl(0.018, len)
+		mi.mesh = mk_cyl(0.010, len)
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = Color(0.92, 0.90, 0.82)
 		mi.material_override = mat
