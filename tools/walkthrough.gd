@@ -72,6 +72,9 @@ func _run() -> void:
 		guard += 1
 		_scene._show_step(idx)
 		await _frames(_wait)
+		# 入场动画（镊子抬起、培养皿移动等）通常 0.5~0.8 s，
+		# 不等它稳住就截图，拍到的还是上一帧的姿势
+		await get_tree().create_timer(1.9).timeout
 
 		var step: Dictionary = steps[idx]
 		print("\n[step %d] %s" % [idx, str(step.get("title", "")).left(40)])

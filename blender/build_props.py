@@ -789,6 +789,48 @@ def build_microscope() -> None:
     export(root, "microscope.glb")
 
 
+
+def build_tweezers() -> None:
+    """无菌镊子：尾端圆环 + 两条连续扁簧（扫掠后压扁），尖端收细。
+    原点在尾端，沿 +X 伸出，平放时厚度在 Z。"""
+    reset_scene()
+    steel = new_material("twz_steel", (0.86, 0.87, 0.89), 0.28, 0.30)
+    dark = new_material("twz_dark", (0.44, 0.45, 0.47), 0.34, 0.20)
+
+    root = empty("tweezers")
+    parts = []
+
+    L = 0.135
+    x0 = 0.016
+
+    # 尾部圆环（握持端）
+    tail = box("tweezer_tail", (0.014, 0.011, 0.0035), (0.008, 0.0, 0.0), dark,
+               bevel=0.0016, segments=3)
+    parts.append(tail)
+
+    # 两条扁簧：一条连续曲线，向外微张、末端收拢
+    for side in (1.0, -1.0):
+        ts = (0.0, 0.28, 0.56, 0.80, 1.0)
+        spread = (0.0018, 0.0034, 0.0046, 0.0044, 0.0026)
+        radii = (0.0056, 0.0048, 0.0040, 0.0031, 0.0020)
+        pts = [Vector((x0 + (L - x0) * t, side * y, 0.0)) for t, y in zip(ts, spread)]
+        arm = plant_lib.tube(f"tweezer_arm_{'l' if side > 0 else 'r'}",
+                             pts, list(radii), steel, seg=8)
+        arm.scale.z = 0.40          # 压扁成簧片
+        parts.append(arm)
+
+        # 斜口尖端
+        tip = plant_lib.tube(f"tweezer_tip_{'l' if side > 0 else 'r'}",
+                             [Vector((L - 0.004, side * 0.0028, 0.0)),
+                              Vector((L + 0.004, side * 0.0018, 0.0))],
+                             [0.0018, 0.0005], dark, seg=6)
+        tip.scale.z = 0.40
+        parts.append(tip)
+
+    parent_all(root, parts)
+    export(root, "tweezers.glb")
+
+
 def build_tube_rack() -> None:
     """试管架：底板 + 两侧壁 + 6 支试管。"""
     reset_scene()
@@ -853,6 +895,7 @@ def main() -> None:
     build_incubator()
     build_plantlet()
     build_microscope()
+    build_tweezers()
     build_anther()
     build_room()
     print("完成")

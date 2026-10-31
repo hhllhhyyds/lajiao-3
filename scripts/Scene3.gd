@@ -22,6 +22,10 @@ const MAT_TILE := preload("res://materials/tile_wall.tres")
 const MAT_FLOOR := preload("res://materials/floor_epoxy.tres")
 const MAT_LABEL_PAPER := preload("res://materials/label_paper.tres")
 const DISH_SCENE := preload("res://assets/props/petri_dish.glb")
+const TWEEZERS_SCENE := preload("res://assets/props/tweezers.glb")
+const MAT_ANTHER := preload("res://materials/anther_picked.tres")
+const MAT_STEEL_DARK := preload("res://materials/steel_dark.tres")
+const MAT_STEEL_BRIGHT := preload("res://materials/steel_bright.tres")
 
 # 各操作目标位置（悬停在试剂/器具上方）
 const POS_BUD      := Vector3(-4.5, 1.35, 0.3)
@@ -29,9 +33,16 @@ const POS_ALCOHOL  := Vector3(-3.8, 1.55, 0.0)
 const POS_WATER1   := Vector3(-2.3, 1.55, 0.0)
 const POS_NACLO    := Vector3(-0.8, 1.55, 0.0)
 const POS_WATER2   := Vector3( 0.7, 1.55, 0.0)
-const POS_CABINET  := Vector3( 3.6, 2.10, 0.0)
+const POS_CABINET  := Vector3( 2.05, 1.10, -0.22)
 const POS_TWEEZERS := Vector3( 2.45, 1.12, -0.75)
 const POS_MEDIUM   := Vector3( 2.45, 1.16,  1.15)
+
+# 镊子的平放姿态（台面上）
+const TWZ_REST_POS := Vector3(2.45, 1.030, -0.75)
+const TWZ_REST_ROT := Vector3(0.0, 14.0, 74.0)
+
+var tweezer_model: Node3D
+var held_anther: MeshInstance3D
 
 func _ready() -> void:
 	scene_number = 3
@@ -146,7 +157,7 @@ func _build_bottles() -> void:
 		Color(0.62, 0.80, 0.92, 0.55))
 	_dress_bottle(Vector3(-0.80, 0.99, -0.30), 0.186, 0.48, "8% NaClO",
 		Color(0.86, 0.90, 0.86, 0.60))
-	_dress_bottle(Vector3(0.70, 0.99, -0.30), 0.150, 0.40, "无菌水",
+	_dress_bottle(Vector3(0.70, 0.99, -0.30), 0.132, 0.18, "无菌水",
 		Color(0.62, 0.80, 0.92, 0.55))
 
 	create_interactable("bottle_alcohol",
@@ -252,14 +263,82 @@ func _build_medium() -> void:
 	var lbl_med := attach_label3d("medium_plate", "愈伤组织\n诱导培养基", Vector3(0, 0.38, 0), 28, Color(0.0, 0.85, 0.85))
 	if lbl_med: lbl_med.outline_size = 10; lbl_med.outline_modulate = Color(0.0, 0.30, 0.30, 1.0)
 
-	set_top_layer(add_static(mk_cyl(0.04, 1.0), Vector3(2.45, 1.05, -0.75), Color(0.72, 0.72, 0.75),
-		Vector3(0, 0, 78)))
+	# 真实镊子：尾端圆环 + 两条扁簧，平放在台面上
+	tweezer_model = PropKit.spawn(self, TWEEZERS_SCENE, TWZ_REST_POS, TWZ_REST_ROT, {
+		"tweezer_arm": MAT_STEEL_BRIGHT,
+		"tweezer_tail": MAT_STEEL_BRIGHT,
+		"tweezer_tip": MAT_STEEL_DARK,
+	}, Vector3(5.0, 5.0, 5.0))
+
+	# 器械杯：镊子竖插在里面，用前用后姿态才分得清
+	var cup := add_static(mk_cyl(0.075, 0.17), Vector3(2.45, 1.085, -0.75), Color.WHITE)
+	cup.material_override = MAT_STAINLESS
+	var cup_inner := add_static(mk_cyl(0.062, 0.15), Vector3(2.45, 1.10, -0.75), Color(0.20, 0.21, 0.23))
+	cup_inner.material_override = MAT_STEEL_DARK
+
+	# 夹在尖端的花药（剥取后才出现）
+	held_anther = MeshInstance3D.new()
+	held_anther.mesh = mk_sphere(0.0085)
+	held_anther.material_override = MAT_ANTHER
+	held_anther.position = Vector3(0.130, 0.0, 0.0)
+	held_anther.visible = false
+	tweezer_model.add_child(held_anther)
 	create_interactable("tweezers",
 		Vector3(2.45, 1.08, -0.75), mk_box(Vector3(1.1, 0.25, 0.25)),
 		Color(0.72, 0.72, 0.75, 0.0), Color(0.90, 0.95, 1.0), "无菌镊子（剥取花药）")
 	interactables["tweezers"]["area"].get_child(0).visible = false
-	var lbl_twz := add_label3d("无菌镊子", Vector3(3.15, 1.70, -0.75), 40, Color(0.72, 0.72, 0.72))
+	var lbl_twz := add_label3d("无菌镊子", Vector3(2.60, 1.86, -0.72), 34, Color(0.86, 0.87, 0.90))
 	lbl_twz.outline_size = 10; lbl_twz.outline_modulate = Color(0.20, 0.20, 0.20, 1.0)
+
+## 镊子的三个状态：台面平放 / 抬起夹住花药 / 移到培养皿放下
+func _show_step(idx: int) -> void:
+	super._show_step(idx)
+	if tweezer_model == null or not is_instance_valid(tweezer_model):
+		return
+	if bud_node:
+		bud_node.visible = idx < 7
+	match idx:
+		7: _tweezers_lift()
+		8: _tweezers_transfer()
+		_: _tweezers_rest()
+
+func _tweezers_rest() -> void:
+	if held_anther:
+		held_anther.visible = false
+	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_property(tweezer_model, "position", TWZ_REST_POS, 0.45)
+	tw.parallel().tween_property(tweezer_model, "rotation_degrees", TWZ_REST_ROT, 0.45)
+
+func _tweezers_lift() -> void:
+	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_property(tweezer_model, "position", Vector3(1.75, 1.56, -0.20), 0.55)
+	tw.parallel().tween_property(tweezer_model, "rotation_degrees", Vector3(0.0, 14.0, -35.0), 0.55)
+	tw.tween_callback(func():
+		if held_anther:
+			held_anther.visible = true)
+
+func _tweezers_transfer() -> void:
+	if held_anther:
+		held_anther.visible = true
+	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_property(tweezer_model, "position", Vector3(1.98, 1.60, 1.27), 0.6)
+	tw.parallel().tween_property(tweezer_model, "rotation_degrees", Vector3(0.0, 14.0, -45.0), 0.6)
+	tw.tween_property(tweezer_model, "position", Vector3(1.98, 1.55, 1.27), 0.3)
+	tw.tween_callback(func():
+		if held_anther:
+			held_anther.visible = false
+		_place_anthers())
+	tw.tween_property(tweezer_model, "position", TWZ_REST_POS, 0.65)
+	tw.parallel().tween_property(tweezer_model, "rotation_degrees", TWZ_REST_ROT, 0.65)
+
+## 接种：在琼脂上留下几粒花药
+func _place_anthers() -> void:
+	for i in 4:
+		var bead := MeshInstance3D.new()
+		bead.mesh = mk_sphere(0.048)
+		bead.material_override = MAT_ANTHER
+		bead.position = Vector3(2.45 + (i % 2) * 0.22 - 0.11, 1.115, 1.15 + (i / 2) * 0.18 - 0.09)
+		add_child(bead)
 
 func _define_steps() -> void:
 	steps = [
