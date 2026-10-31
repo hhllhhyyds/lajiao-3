@@ -16,3 +16,7 @@
 # 导出产物
 /build/
 export/
+
+# Python 缓存（Blender 脚本）
+__pycache__/
+*.pyc

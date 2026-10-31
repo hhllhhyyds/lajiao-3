@@ -13,15 +13,28 @@ var time_running: bool = false
 var bud_collected: bool = false
 var bud_model: Node3D  # 用于动画的花药模型
 
+const PLANT_SCENE := preload("res://assets/props/pepper_plant.glb")
+const ANTHER_SCENE := preload("res://assets/props/anther.glb")
+const MAT_STEM := preload("res://materials/stem.tres")
+const MAT_LEAF := preload("res://materials/leaf.tres")
+const MAT_PETAL := preload("res://materials/petal.tres")
+const MAT_CALYX := preload("res://materials/calyx.tres")
+const MAT_FILAMENT := preload("res://materials/anther_filament.tres")
+
 func _ready() -> void:
 	scene_number = 2
 	scene_title  = "辣椒花药选取"
+	env_preset = "outdoor"
+	light_focus = Vector3(-0.8, 1.3, 0.0)
+	light_radius = 3.2
+	light_intensity = 0.95
+	light_key_yaw = 24.0
 	super._ready()
 
 func _configure_camera() -> void:
-	camera.position = Vector3(3.5, 3.8, 6.5)
-	camera.look_at(Vector3(0.0, 1.2, 0.0))
-	camera.fov = 48.0
+	camera.position = Vector3(1.85, 2.05, 4.35)
+	camera.look_at(Vector3(-0.85, 0.95, 0.05))
+	camera.fov = 42.0
 
 func _setup_scene() -> void:
 	_build_ground()
@@ -30,106 +43,56 @@ func _setup_scene() -> void:
 	_build_temp_controls()
 
 func _build_ground() -> void:
-	add_static(mk_plane(Vector2(22, 22)), Vector3.ZERO, Color(0.14, 0.32, 0.14))
-	# 小土丘
-	add_static(mk_sphere(1.2), Vector3(-5, -0.8, -4), Color(0.22, 0.42, 0.18))
-	add_static(mk_sphere(0.9), Vector3(5, -0.7, -5), Color(0.20, 0.40, 0.17))
+	# 田块：深绿草地 + 植株根部一圈裸土
+	add_static(mk_plane(Vector2(26, 26)), Vector3.ZERO, Color(0.10, 0.19, 0.07))
+	add_static(mk_cyl(0.92, 0.04), Vector3(-1.0, 0.015, 0.0), Color(0.10, 0.078, 0.055))
+	add_static(mk_sphere(1.6), Vector3(-7.5, -1.1, -6.5), Color(0.13, 0.23, 0.09))
+	add_static(mk_sphere(1.2), Vector3(7.0, -1.0, -6.0), Color(0.12, 0.21, 0.08))
 
 func _build_pepper_plant() -> void:
-	# 主茎
-	add_static(mk_cyl(0.10, 1.8), Vector3(-1.0, 0.9, 0.0), Color(0.22, 0.52, 0.20))
-	# 侧枝
-	for i in 4:
-		var a := i * TAU / 4
-		var bx := sin(a) * 0.45; var bz := cos(a) * 0.45
-		add_static(mk_cyl(0.05, 0.60), Vector3(-1.0 + bx, 1.1 + i*0.12, bz),
-			Color(0.20, 0.50, 0.18), Vector3(sin(a)*30, 0, cos(a)*30))
-	# 叶片（三棱锥）
-	for i in 8:
-		var a := i * TAU / 8
-		var lx := sin(a) * 0.65; var lz := cos(a) * 0.65
-		var deg := rad_to_deg(a)
-		add_static(mk_prism(Vector3(0.22, 0.28, 0.22)),
-			Vector3(-1.0 + lx, 0.38 + i*0.11, lz),
-			Color(0.20, 0.58, 0.20), Vector3(0, deg, 0))
+	# 整株模型（Blender 参数化生成：主干二歧分枝 + 叶片 + 白花）
+	PropKit.spawn(self, PLANT_SCENE, Vector3(-1.0, 0.0, 0.0), Vector3(0.0, 20.0, 0.0), {
+		"pepper_plant_stem": MAT_STEM,
+		"pepper_plant_br": MAT_STEM,
+		"pepper_plant_leaf": MAT_LEAF,
+		"pepper_plant_calyx": MAT_CALYX,
+		"pepper_plant_fl": MAT_PETAL,
+	}, Vector3(1.55, 1.55, 1.55))
 
-	# === 花瓣（5片，白色椭球体）===
-	for i in 5:
-		var a := i * TAU / 5
-		var px := sin(a) * 0.38; var pz := cos(a) * 0.38
-		var petal := add_glass(mk_capsule(0.26, 0.80),
-			Vector3(-1.0 + px, 1.55, pz),
-			Color(1.0, 1.0, 1.0, 0.45),
-			Vector3(0.0, rad_to_deg(a), 72.0))
-		petal.scale = Vector3(1.8, 0.55, 2.8)
+	add_label3d("←花瓣", Vector3(-0.30, 1.70, 0.55), 40, Color.WHITE)
 
-	add_label3d("←花瓣", Vector3(0.9, 1.85, 0.5), 40, Color.WHITE)
-
-# === 花药（五个，分散分布）===
-	# 正确：单核靠边期（淡奶油黄色）
-	create_interactable("bud_correct",
-		Vector3(-1.2, 2.90, 0.20),
-		mk_sphere(0.22),
-		Color(1.0, 0.92, 0.05),
-		Color(1.0, 1.0, 0.40),
-		"单核靠边期花药")
-	for ch in interactables["bud_correct"]["area"].get_children():
-		if ch is Label3D and not ch.get_meta("static_label", false):
-			ch.position = Vector3(0.0, 0.28, 0.0); ch.font_size = 30
-
-	# 错误：花粉母细胞期（绿色）
-	create_interactable("bud_early",
-		Vector3(-2.4, 2.30, 0.10),
-		mk_sphere(0.17),
-		Color(0.60, 0.90, 0.62),
-		Color(0.75, 1.0, 0.76),
-		"花粉母细胞期花药")
-	for ch in interactables["bud_early"]["area"].get_children():
-		if ch is Label3D and not ch.get_meta("static_label", false):
-			ch.position += Vector3(-0.4, -0.35, 0.0); ch.font_size = 30
-
-	# 错误：二核期（深紫）
-	create_interactable("bud_late",
-		Vector3(-0.20, 2.50, -0.50),
-		mk_sphere(0.28),
-		Color(0.75, 0.55, 0.05),
-		Color(0.90, 0.70, 0.15),
-		"二核期花药")
-	for ch in interactables["bud_late"]["area"].get_children():
-		if ch is Label3D and not ch.get_meta("static_label", false):
-			ch.position = Vector3(0.0, 0.42, 0.0); ch.font_size = 30
-
-	# 错误：单核早期（黄绿色）
-	create_interactable("bud_uninuclear_early",
-		Vector3(-0.20, 2.70, 1.00),
-		mk_sphere(0.17),
-		Color(0.68, 0.88, 0.22),
-		Color(0.80, 1.0, 0.35),
-		"单核早期花药")
-	for ch in interactables["bud_uninuclear_early"]["area"].get_children():
-		if ch is Label3D and not ch.get_meta("static_label", false):
-			ch.position = Vector3(0.0, -0.18, 0.0); ch.font_size = 30
-
-	# 错误：成熟期（灰紫）
-	create_interactable("bud_mature",
-		Vector3(-1.2, 2.10, 1.20),
-		mk_sphere(0.17),
-		Color(0.80, 0.65, 0.90),
-		Color(0.92, 0.80, 1.0),
-		"成熟花粉期花药")
-	for ch in interactables["bud_mature"]["area"].get_children():
-		if ch is Label3D and not ch.get_meta("static_label", false):
-			ch.position = Vector3(-0.85, 0.0, 0.0); ch.font_size = 30
+	# 五个发育期的花药标本（球体只做碰撞，外观用真实花药模型）
+	_anther_specimen("bud_correct", Vector3(-1.54, 1.90, 0.26), 0.22,
+		Color(1.0, 0.92, 0.05), Color(1.0, 1.0, 0.40), "单核靠边期花药", 21.0, 18.0)
+	_anther_specimen("bud_early", Vector3(-1.98, 1.68, 0.02), 0.17,
+		Color(0.60, 0.90, 0.62), Color(0.75, 1.0, 0.76), "花粉母细胞期花药", 18.0, -32.0)
+	_anther_specimen("bud_late", Vector3(-0.62, 1.98, -0.40), 0.28,
+		Color(0.75, 0.55, 0.05), Color(0.90, 0.70, 0.15), "二核期花药", 26.0, 42.0)
+	_anther_specimen("bud_uninuclear_early", Vector3(-0.44, 1.78, 0.74), 0.17,
+		Color(0.68, 0.88, 0.22), Color(0.80, 1.0, 0.35), "单核早期花药", 18.0, 8.0)
+	_anther_specimen("bud_mature", Vector3(-1.28, 1.60, 0.88), 0.17,
+		Color(0.80, 0.65, 0.90), Color(0.92, 0.80, 1.0), "成熟花粉期花药", 18.0, -14.0)
 
 	# 花药区域说明标签
-	var bud_area_lbl := add_label3d("处于不同发育时期的花药→", Vector3(-5.0, 1.95, 0.10), 46, Color.WHITE)
+	var bud_area_lbl := add_label3d("处于不同发育时期的花药→", Vector3(-2.95, 2.05, 0.10), 46, Color.WHITE)
 	bud_area_lbl.outline_size = 5
 	bud_area_lbl.outline_modulate = Color(0.2, 0.1, 0.0, 0.8)
 
 	# 标签
-	var plant_lbl := add_label3d("处于盛花状态的辣椒植株", Vector3(-1.0, 3.7, 0), 50, Color(0.8, 1.0, 0.8))
+	var plant_lbl := add_label3d("处于盛花状态的辣椒植株", Vector3(-1.0, 2.62, 0), 50, Color(0.8, 1.0, 0.8))
 	plant_lbl.outline_size = 6
 	plant_lbl.outline_modulate = Color(0.1, 0.3, 0.1, 0.9)
+
+## 花药标本：球形碰撞体 + 真实花药外观，材质与交互体共用以便高亮
+func _anther_specimen(nm: String, pos: Vector3, size: float, color: Color,
+		hover: Color, tooltip: String, scl: float, tilt: float = 20.0) -> void:
+	create_interactable(nm, pos, mk_sphere(size), color, hover, tooltip)
+	var area: Area3D = interactables[nm]["area"]
+	area.get_child(0).visible = false
+	PropKit.spawn(area, ANTHER_SCENE, Vector3(0.0, 0.05, 0.0), Vector3(tilt, 0.0, 0.0), {
+		"anther_body": interactables[nm]["mat"],
+		"anther_filament": MAT_FILAMENT,
+	}, Vector3(scl, scl, scl))
 
 func _build_cold_storage() -> void:
 	# 低温处理箱外壳（半透明蓝色）

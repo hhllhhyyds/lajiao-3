@@ -46,6 +46,7 @@ var env_preset: String = "lab"                     # lab / indoor / outdoor
 var light_focus: Vector3 = Vector3(0.0, 1.2, 0.0)  # 画面主体的世界坐标
 var light_radius: float = 3.0                      # 主体大致半径（米）
 var light_intensity: float = 1.0                   # 场景越亮（材质越白）调得越低
+var light_key_yaw: float = 34.0                    # 主光水平方位（度）
 var label_projector: LabelProjector
 
 # =====================================================================
@@ -82,7 +83,8 @@ func _setup_environment() -> void:
 	CinematicLab.setup_environment(self, env_preset)
 
 func _setup_lighting() -> void:
-	CinematicLab.setup_lighting(self, light_focus, light_radius, env_preset, light_intensity)
+	CinematicLab.setup_lighting(self, light_focus, light_radius, env_preset,
+		light_intensity, light_key_yaw)
 
 func _setup_camera() -> void:
 	camera = Camera3D.new()

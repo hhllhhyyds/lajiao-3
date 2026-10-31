@@ -20,9 +20,14 @@ from __future__ import annotations
 
 import math
 import os
+import sys
 
 import bpy
 from mathutils import Vector
+
+# Blender 的 --python 不会把脚本目录加进 sys.path，手动补上
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import plant_lib  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_DIR = os.path.join(ROOT, "assets", "props")
@@ -562,6 +567,63 @@ def build_flask() -> None:
     export(root, "conical_flask.glb")
 
 
+
+def build_pepper_plant() -> None:
+    """盛花期辣椒植株：主干、二歧分枝、叶片、白花。"""
+    reset_scene()
+    leaf_mats = [
+        new_material("leaf_a", (0.10, 0.22, 0.06), 0.55),
+        new_material("leaf_b", (0.13, 0.26, 0.08), 0.60),
+        new_material("leaf_c", (0.08, 0.19, 0.05), 0.52),
+    ]
+    stem_mat = new_material("stem", (0.16, 0.24, 0.09), 0.60)
+    petal_mat = new_material("petal", (0.94, 0.94, 0.88), 0.48)
+    calyx_mat = new_material("calyx", (0.22, 0.34, 0.10), 0.55)
+
+    root = empty("pepper_plant")
+    parts = plant_lib.build_pepper_plant(root.name, leaf_mats, stem_mat,
+                                         petal_mat, calyx_mat)
+
+    # 下垂的叶片会低于地面，整体抬到 z=0，保证"原点在土面"
+    lo0, _hi = bounds(parts)
+    if lo0[2] < 0.0:
+        for part in parts:
+            part.location.z -= lo0[2]
+
+    parent_all(root, parts)
+    lo, hi = bounds(parts)
+    print(f"[plant] bounds lo={lo} hi={hi}  parts={len(parts)}")
+    export(root, "pepper_plant.glb")
+
+
+def build_anther() -> None:
+    """单枚花药：裂片状药室 + 细花丝。Scene2 里放大当作各发育期的标本。"""
+    reset_scene()
+    anther_mat = new_material("anther_body", (0.86, 0.62, 0.12), 0.42)
+    filament_mat = new_material("anther_filament", (0.72, 0.78, 0.42), 0.55)
+
+    root = empty("anther")
+    parts = []
+
+    # 药室：沿中轴变径的管，压扁成裂片
+    body = plant_lib.tube("anther_body", [
+        Vector((0.0, 0.0, 0.0)), Vector((0.0004, 0.0, 0.0025)),
+        Vector((0.0006, 0.0, 0.0050)), Vector((0.0004, 0.0, 0.0072)),
+        Vector((0.0, 0.0, 0.0084)),
+    ], [0.0007, 0.0021, 0.0024, 0.0018, 0.0006], anther_mat, seg=16)
+    body.scale = (1.0, 0.62, 1.0)
+    parts.append(body)
+
+    # 花丝：从药室基部向下
+    parts.append(plant_lib.tube("anther_filament", [
+        Vector((0.0, 0.0, -0.0004)), Vector((0.0, 0.0, -0.006)),
+        Vector((0.0002, 0.0, -0.012)),
+    ], [0.0005, 0.00042, 0.00035], filament_mat, seg=8))
+
+    parent_all(root, parts)
+    export(root, "anther.glb")
+
+
 def build_tube_rack() -> None:
     """试管架：底板 + 两侧壁 + 6 支试管。"""
     reset_scene()
@@ -622,6 +684,8 @@ def main() -> None:
     build_beaker()
     build_flask()
     build_tube_rack()
+    build_pepper_plant()
+    build_anther()
     build_room()
     print("完成")
 

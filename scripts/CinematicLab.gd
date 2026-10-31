@@ -88,7 +88,14 @@ static func setup_environment(parent: Node, preset: String = "lab") -> WorldEnvi
 	env.tonemap_exposure = p["exposure"]
 	env.tonemap_white = 6.0
 
-	env.fog_enabled = false
+	# 户外需要一点空气透视，否则 26 m 的地平面会在天边切成一条硬线
+	env.fog_enabled = preset == "outdoor"
+	env.fog_mode = Environment.FOG_MODE_DEPTH
+	env.fog_depth_begin = 12.0
+	env.fog_depth_end = 46.0
+	env.fog_density = 1.0
+	env.fog_light_color = Color(0.62, 0.72, 0.80)
+	env.fog_sky_affect = 0.0
 	env.glow_enabled = true
 	env.glow_strength = p["glow"]
 	env.glow_bloom = 0.02
@@ -107,7 +114,8 @@ static func setup_environment(parent: Node, preset: String = "lab") -> WorldEnvi
 # ------------------------------------------------------------------ 灯光
 
 static func setup_lighting(parent: Node, focus: Vector3, radius: float,
-		preset: String = "lab", intensity: float = 1.0) -> void:
+		preset: String = "lab", intensity: float = 1.0,
+		key_yaw: float = 34.0) -> void:
 	var p: Dictionary = PRESETS.get(preset, PRESETS["lab"])
 	var r: float = maxf(radius, 0.2)
 	var k: float = maxf(intensity, 0.0)
@@ -115,7 +123,7 @@ static func setup_lighting(parent: Node, focus: Vector3, radius: float,
 	# 主光：唯一投影的灯，负责明暗结构
 	var key := DirectionalLight3D.new()
 	key.name = "CinematicKey"
-	key.rotation_degrees = Vector3(-46.0, 34.0, 0.0)
+	key.rotation_degrees = Vector3(-46.0, key_yaw, 0.0)
 	key.light_color = p["key_color"]
 	key.light_energy = float(p["key_energy"]) * k
 	key.shadow_enabled = true
@@ -123,8 +131,9 @@ static func setup_lighting(parent: Node, focus: Vector3, radius: float,
 	key.directional_shadow_max_distance = maxf(r * 12.0, 12.0)
 	key.shadow_blur = 1.5
 	key.light_angular_distance = 0.6
-	key.shadow_bias = 0.02
-	key.shadow_normal_bias = 1.0
+	# 大平面上阴影偏移不够就会出现同心条纹（shadow acne）
+	key.shadow_bias = 0.05
+	key.shadow_normal_bias = 2.5
 	parent.add_child(key)
 
 	# 补光：冷色，从另一侧压住暗部
