@@ -76,6 +76,7 @@ const CAM_BREATH := 1.0           # 手持呼吸感强度，0 = 完全静止
 # =====================================================================
 var matched: Dictionary = {}
 var selected_key: String = ""
+var check_labels: Dictionary = {}   # key -> 配对成功后的对勾标签
 var formula_panel: Control
 var panel_title_lbl: Label
 var formula_btns: Array[Button] = []
@@ -240,6 +241,21 @@ func _build_dishes() -> void:
 
 		label_projector.add(media["label"], area, Vector3(0.0, 0.115, 0.02), 40,
 			Color(media["color"]).lightened(0.55))
+
+		# 配对成功后才显示的对勾（贴在皿盖旁边，不挡标签）
+		var tick := Label3D.new()
+		tick.text = "✓"
+		tick.font_size = 44
+		tick.pixel_size = 0.0018      # 字高约 8 cm，跟皿同一量级
+		tick.modulate = Color(0.45, 1.0, 0.50)
+		tick.outline_size = 10
+		tick.outline_modulate = Color(0.0, 0.22, 0.05, 0.95)
+		tick.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		tick.no_depth_test = true
+		tick.position = Vector3(-0.072, 0.042, 0.022)
+		tick.visible = false
+		area.add_child(tick)
+		check_labels[media["key"]] = tick
 
 		area.mouse_entered.connect(func(): _hover_enter(media["key"], agar_mat, media["hover"], area))
 		area.mouse_exited.connect(func(): _hover_exit(media["key"], agar_mat, media["color"], area))
@@ -454,6 +470,18 @@ func _pulse_matched(key: String) -> void:
 	var tw := create_tween()
 	tw.tween_property(area, "scale", Vector3(1.12, 1.12, 1.12), 0.15)
 	tw.tween_property(area, "scale", Vector3(1.0, 1.0, 1.0), 0.15)
+
+	# 配对成功的皿要"看得出来"：琼脂自发光 + 冒出对勾
+	var mat := interactables[key].get("mat") as StandardMaterial3D
+	if mat:
+		mat.emission_enabled = true
+		mat.emission = mat.albedo_color * 0.55
+	var tick := check_labels.get(key) as Label3D
+	if tick:
+		tick.visible = true
+		tick.scale = Vector3.ONE * 0.4
+		var pop := create_tween()
+		pop.tween_property(tick, "scale", Vector3.ONE, 0.28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 func _close_formula_panel() -> void:
 	formula_panel.visible = false

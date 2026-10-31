@@ -38,8 +38,8 @@ func _ready() -> void:
 	super._ready()
 
 func _configure_camera() -> void:
-	camera.position = Vector3(1.60, 2.40, 6.60)
-	camera.look_at(Vector3(-0.20, 1.15, 0.10))
+	camera.position = Vector3(1.90, 2.45, 7.15)
+	camera.look_at(Vector3(0.10, 1.15, 0.10))
 	camera.fov = 42.0
 
 func _setup_scene() -> void:
@@ -54,6 +54,22 @@ func _build_ground() -> void:
 	add_static(mk_cyl(0.92, 0.04), Vector3(-1.0, 0.015, 0.0), Color(0.10, 0.078, 0.055))
 	add_static(mk_sphere(1.6), Vector3(-7.5, -1.1, -6.5), Color(0.13, 0.23, 0.09))
 	add_static(mk_sphere(1.2), Vector3(7.0, -1.0, -6.0), Color(0.12, 0.21, 0.08))
+
+	# 草丛：给地面一个尺度参照，否则 26 m 的平面看不出大小
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 20261101
+	for i in 220:
+		var ang := rng.randf() * TAU
+		var dist := 0.9 + rng.randf() * 6.5
+		var p := Vector3(-1.0 + cos(ang) * dist, 0.0, sin(ang) * dist)
+		# 让开低温箱和植株根部
+		if p.x > 0.6 and p.x < 3.4 and p.z > -1.6 and p.z < 0.8:
+			continue
+		var h := 0.05 + rng.randf() * 0.10
+		var blade := add_static(mk_cyl(0.006 + rng.randf() * 0.006, h), p + Vector3(0, h * 0.5, 0),
+			Color(0.16 + rng.randf() * 0.08, 0.30 + rng.randf() * 0.10, 0.10))
+		blade.rotation_degrees = Vector3(rng.randf_range(-9.0, 9.0), rng.randf() * 360.0,
+			rng.randf_range(-9.0, 9.0))
 
 func _build_pepper_plant() -> void:
 	# 整株模型（Blender 参数化生成：主干二歧分枝 + 叶片 + 白花）
