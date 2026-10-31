@@ -20,6 +20,8 @@ const MAT_STAINLESS := preload("res://materials/stainless.tres")
 const MAT_BENCH := preload("res://materials/epoxy_bench.tres")
 const MAT_TILE := preload("res://materials/tile_wall.tres")
 const MAT_FLOOR := preload("res://materials/floor_epoxy.tres")
+const MAT_LABEL_PAPER := preload("res://materials/label_paper.tres")
+const DISH_SCENE := preload("res://assets/props/petri_dish.glb")
 
 # 各操作目标位置（悬停在试剂/器具上方）
 const POS_BUD      := Vector3(-4.5, 1.35, 0.3)
@@ -70,6 +72,43 @@ func _panel(size: Vector3, pos: Vector3, mat: Material) -> MeshInstance3D:
 	mi.material_override = mat
 	return mi
 
+## 给瓶子加标签纸、液面标签上的字，让它看起来是被用过的试剂瓶
+func _dress_bottle(base: Vector3, radius: float, height: float,
+		text: String, liquid: Color = Color(0, 0, 0, 0)) -> void:
+	var label_y := base.y + height * 0.42
+	var band_h := height * 0.34
+
+	var band := MeshInstance3D.new()
+	band.mesh = mk_cyl(radius + 0.0015, band_h)
+	band.material_override = MAT_LABEL_PAPER
+	band.position = Vector3(base.x, label_y, base.z)
+	add_child(band)
+
+	# 标签上的字：不朝向相机，贴在瓶身上
+	var tag := Label3D.new()
+	tag.text = text
+	tag.font_size = 40
+	tag.billboard = BaseMaterial3D.BILLBOARD_DISABLED
+	tag.no_depth_test = false
+	tag.rotation_degrees = Vector3(0.0, 0.0, 0.0)
+	tag.pixel_size = 0.0024
+	tag.modulate = Color(0.12, 0.12, 0.14)
+	tag.outline_size = 0
+	tag.position = Vector3(base.x, label_y, base.z + radius + 0.004)
+	add_child(tag)
+
+	# 液面：只给透明瓶子加
+	if liquid.a > 0.0:
+		var liq := MeshInstance3D.new()
+		liq.mesh = mk_cyl(radius * 0.92, height * 0.52)
+		var lm := StandardMaterial3D.new()
+		lm.albedo_color = liquid
+		lm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		lm.roughness = 0.12
+		liq.material_override = lm
+		liq.position = Vector3(base.x, base.y + height * 0.28, base.z)
+		add_child(liq)
+
 func _build_bottles() -> void:
 	# 真实瓶型（Blender 旋转成型）：棕色试剂瓶 / 两支广口瓶 / 锥形瓶
 	# 本关是 4 倍尺度（台面 10 m 宽），所以道具整体放大
@@ -94,6 +133,15 @@ func _build_bottles() -> void:
 	PropKit.spawn(self, FLASK_SCENE, Vector3(0.70, 0.99, -0.30), Vector3.ZERO, {
 		"flask_body": MAT_CLEAR_BOTTLE,
 	}, Vector3(3.6, 3.6, 3.6))
+
+	# 标签纸 + 液面
+	_dress_bottle(Vector3(-3.80, 0.99, -0.30), 0.128, 0.70, "75% 乙醇")
+	_dress_bottle(Vector3(-2.30, 0.99, -0.30), 0.186, 0.48, "无菌水",
+		Color(0.62, 0.80, 0.92, 0.55))
+	_dress_bottle(Vector3(-0.80, 0.99, -0.30), 0.186, 0.48, "8% NaClO",
+		Color(0.86, 0.90, 0.86, 0.60))
+	_dress_bottle(Vector3(0.70, 0.99, -0.30), 0.150, 0.40, "无菌水",
+		Color(0.62, 0.80, 0.92, 0.55))
 
 	create_interactable("bottle_alcohol",
 		Vector3(-3.8, 1.42, -0.3), mk_cyl(0.22, 0.82),
@@ -186,8 +234,11 @@ func _build_flower_bud() -> void:
 	lbl_bud.outline_size = 8; lbl_bud.outline_modulate = Color(0.1, 0.25, 0.05, 0.9)
 
 func _build_medium() -> void:
-	set_top_layer(add_static(mk_cyl(0.50, 0.08), Vector3(2.45, 1.03, 1.15), Color(0.82, 0.92, 0.78)))
-	set_top_layer(add_static(mk_cyl(0.45, 0.10), Vector3(2.45, 1.08, 1.15), Color(0.74, 0.88, 0.68)))
+	PropKit.spawn(self, DISH_SCENE, Vector3(2.45, 0.99, 1.15), Vector3.ZERO, {
+		"petri_dish_lid": MAT_CLEAR_BOTTLE,
+		"petri_dish_base": MAT_CLEAR_BOTTLE,
+	}, Vector3(5.6, 5.6, 5.6))
+	set_top_layer(add_static(mk_cyl(0.26, 0.06), Vector3(2.45, 1.04, 1.15), Color(0.76, 0.88, 0.70)))
 	create_interactable("medium_plate",
 		Vector3(2.45, 1.10, 1.15), mk_cyl(0.52, 0.20),
 		Color(0.74, 0.88, 0.68, 0.0), Color(0.85, 1.0, 0.75), "愈伤组织诱导培养基")
