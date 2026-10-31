@@ -1,0 +1,11 @@
+[gd_scene load_steps=3 format=3 uid="uid://mbl31phoe83f"]
+
+[ext_resource type="Script" uid="uid://bnvd8en884mdm" path="res://scripts/Scene2.gd" id="1_scene2"]
+[ext_resource type="AudioStream" uid="uid://dr7hn65i6sa8n" path="res://scripts/videvisan-tegner-sound.mp3" id="2_xbhk6"]
+
+[node name="Scene2" type="Node3D"]
+script = ExtResource("1_scene2")
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("2_xbhk6")
+autoplay = true
