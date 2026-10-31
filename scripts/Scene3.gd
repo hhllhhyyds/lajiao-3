@@ -38,7 +38,7 @@ func _ready() -> void:
 	scene_title  = "花药消毒与接种"
 	light_focus = Vector3(0.0, 1.5, 0.0)
 	light_radius = 4.0
-	light_intensity = 0.62
+	light_intensity = 0.80
 	super._ready()
 
 func _configure_camera() -> void:
@@ -66,6 +66,12 @@ func _build_lab_bench() -> void:
 
 	var floor_mi := add_static(mk_plane(Vector2(14, 9)), Vector3(0.0, 0.0, 0.6), Color.WHITE)
 	floor_mi.material_override = MAT_FLOOR
+
+## 超净台内壁是 box，面 UV 只有 0..1，直接套世界 UV 的瓷砖材质会被拉成大板
+func _tiled(w: float, h: float) -> StandardMaterial3D:
+	var m := MAT_TILE.duplicate() as StandardMaterial3D
+	m.uv1_scale = Vector3(w * 1.6, h * 1.6, 1.0)
+	return m
 
 func _panel(size: Vector3, pos: Vector3, mat: Material) -> MeshInstance3D:
 	var mi := add_static(mk_box(size), pos, Color.WHITE)
@@ -180,10 +186,10 @@ func _build_sterile_cabinet() -> void:
 	var cz := 0.6
 	var inner := Color(0.80, 0.82, 0.81)
 
-	_panel(Vector3(w, h, 0.14), Vector3(cx, h * 0.5, cz - d * 0.5), MAT_TILE)
-	_panel(Vector3(0.14, h, d), Vector3(cx - w * 0.5, h * 0.5, cz), MAT_TILE)
-	_panel(Vector3(0.14, h, d), Vector3(cx + w * 0.5, h * 0.5, cz), MAT_TILE)
-	_panel(Vector3(w, 0.14, d), Vector3(cx, h, cz), MAT_TILE)
+	_panel(Vector3(w, h, 0.14), Vector3(cx, h * 0.5, cz - d * 0.5), _tiled(w, h))
+	_panel(Vector3(0.14, h, d), Vector3(cx - w * 0.5, h * 0.5, cz), _tiled(d, h))
+	_panel(Vector3(0.14, h, d), Vector3(cx + w * 0.5, h * 0.5, cz), _tiled(d, h))
+	_panel(Vector3(w, 0.14, d), Vector3(cx, h, cz), _tiled(w, d))
 
 	# 顶部灯带：超净台的照明是它最标志性的东西
 	var lamp := add_static(mk_box(Vector3(w * 0.86, 0.06, 0.30)), Vector3(cx, h - 0.16, cz + 0.4), Color(0.94, 0.96, 0.98))

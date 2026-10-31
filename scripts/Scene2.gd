@@ -50,7 +50,7 @@ func _setup_scene() -> void:
 
 func _build_ground() -> void:
 	# 田块：深绿草地 + 植株根部一圈裸土
-	add_static(mk_plane(Vector2(26, 26)), Vector3.ZERO, Color(0.10, 0.19, 0.07))
+	add_static(mk_plane(Vector2(90, 90)), Vector3.ZERO, Color(0.24, 0.36, 0.15))
 	add_static(mk_cyl(0.92, 0.04), Vector3(-1.0, 0.015, 0.0), Color(0.10, 0.078, 0.055))
 	add_static(mk_sphere(1.6), Vector3(-7.5, -1.1, -6.5), Color(0.13, 0.23, 0.09))
 	add_static(mk_sphere(1.2), Vector3(7.0, -1.0, -6.0), Color(0.12, 0.21, 0.08))

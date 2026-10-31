@@ -5,9 +5,9 @@
 
 [resource]
 albedo_texture = ExtResource("1_albedo")
-albedo_color = Color(0.80, 0.81, 0.79, 1)
+albedo_color = Color(0.62, 0.63, 0.61, 1)
 metallic_specular = 0.6
-roughness = 0.14
+roughness = 0.34
 normal_enabled = true
 normal_texture = ExtResource("2_normal")
 normal_scale = 0.8

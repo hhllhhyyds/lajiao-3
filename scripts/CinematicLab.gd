@@ -36,6 +36,7 @@ const PRESETS := {
 		"rim": true,
 		"pool": true,
 		"glow": 0.25,
+		"white": 2.5,
 	},
 	"indoor": {
 		"bg": Color(0.06, 0.07, 0.09),
@@ -50,11 +51,12 @@ const PRESETS := {
 		"rim": true,
 		"pool": true,
 		"glow": 0.35,
+		"white": 2.2,
 	},
 	"outdoor": {
 		"bg": Color(0.42, 0.55, 0.68),
 		"ambient": Color(0.58, 0.68, 0.80),
-		"ambient_energy": 0.55,
+		"ambient_energy": 0.68,
 		"exposure": 0.98,
 		"key_energy": 1.35,
 		"key_color": Color(1.0, 0.94, 0.82),
@@ -64,6 +66,7 @@ const PRESETS := {
 		"rim": true,
 		"pool": false,
 		"glow": 0.18,
+		"white": 2.5,
 	},
 }
 
@@ -86,7 +89,7 @@ static func setup_environment(parent: Node, preset: String = "lab") -> WorldEnvi
 
 	env.tonemap_mode = Environment.TONE_MAPPER_ACES
 	env.tonemap_exposure = p["exposure"]
-	env.tonemap_white = 6.0
+	env.tonemap_white = p.get("white", 1.4)
 
 	# 户外需要一点空气透视，否则 26 m 的地平面会在天边切成一条硬线
 	env.fog_enabled = preset == "outdoor"
@@ -94,7 +97,7 @@ static func setup_environment(parent: Node, preset: String = "lab") -> WorldEnvi
 	env.fog_depth_begin = 12.0
 	env.fog_depth_end = 46.0
 	env.fog_density = 1.0
-	env.fog_light_color = Color(0.62, 0.72, 0.80)
+	env.fog_light_color = p["bg"].lightened(0.18)
 	env.fog_sky_affect = 0.0
 	env.glow_enabled = true
 	env.glow_strength = p["glow"]
