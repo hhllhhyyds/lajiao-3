@@ -25,7 +25,7 @@ const MAT_PICKED := preload("res://materials/anther_picked.tres")
 # 展示花：位置、朝向、半径（花心里放五枚花药）
 const FLOWER_CENTER := Vector3(-1.00, 1.88, 0.30)
 const FLOWER_EULER := Vector3(412.0, -18.0, 0.0)
-const FLOWER_RADIUS := 0.52
+const FLOWER_RADIUS := 0.74
 var _flower_xf: Transform3D
 const MAT_CASE := preload("res://materials/fridge_case.tres")
 const MAT_INNER := preload("res://materials/fridge_inner.tres")
@@ -92,16 +92,16 @@ func _build_pepper_plant() -> void:
 	add_label3d("←花瓣", FLOWER_CENTER + Vector3(0.66, 0.06, -0.18), 40, Color.WHITE)
 
 	# 五枚花药按花心里的一小簇摆放（坐标是花朵平面内的局部坐标）
-	_anther_specimen("bud_correct", Vector3(-0.13, 0.11, -0.05), 0.16,
-		Color(1.0, 0.92, 0.05), Color(1.0, 1.0, 0.40), "单核靠边期花药", 21.0, 14.0)
-	_anther_specimen("bud_early", Vector3(0.11, 0.12, -0.10), 0.13,
-		Color(0.60, 0.90, 0.62), Color(0.75, 1.0, 0.76), "花粉母细胞期花药", 17.0, -18.0)
-	_anther_specimen("bud_late", Vector3(-0.02, 0.14, 0.12), 0.19,
-		Color(0.75, 0.55, 0.05), Color(0.90, 0.70, 0.15), "二核期花药", 26.0, 24.0)
-	_anther_specimen("bud_uninuclear_early", Vector3(0.16, 0.12, 0.10), 0.13,
-		Color(0.68, 0.88, 0.22), Color(0.80, 1.0, 0.35), "单核早期花药", 17.0, 6.0)
-	_anther_specimen("bud_mature", Vector3(-0.19, 0.12, 0.13), 0.13,
-		Color(0.80, 0.65, 0.90), Color(0.92, 0.80, 1.0), "成熟花粉期花药", 17.0, -10.0)
+	_anther_specimen("bud_correct", Vector3(-0.13, 0.02, -0.05), 0.15,
+		Color(1.0, 0.92, 0.05), Color(1.0, 1.0, 0.40), "单核靠边期花药", 26.0, 8.0)
+	_anther_specimen("bud_early", Vector3(0.12, 0.02, -0.11), 0.12,
+		Color(0.60, 0.90, 0.62), Color(0.75, 1.0, 0.76), "花粉母细胞期花药", 21.0, -12.0)
+	_anther_specimen("bud_late", Vector3(-0.02, 0.02, 0.11), 0.17,
+		Color(0.75, 0.55, 0.05), Color(0.90, 0.70, 0.15), "二核期花药", 31.0, 14.0)
+	_anther_specimen("bud_uninuclear_early", Vector3(0.17, 0.02, 0.09), 0.12,
+		Color(0.68, 0.88, 0.22), Color(0.80, 1.0, 0.35), "单核早期花药", 21.0, 4.0)
+	_anther_specimen("bud_mature", Vector3(-0.20, 0.02, 0.12), 0.12,
+		Color(0.80, 0.65, 0.90), Color(0.92, 0.80, 1.0), "成熟花粉期花药", 21.0, -6.0)
 
 	# 花药区域说明标签
 	var bud_area_lbl := add_label3d("这朵花里有五种发育程度的花药",
@@ -127,9 +127,9 @@ func _build_display_flower() -> void:
 
 	# 花托
 	var calyx := MeshInstance3D.new()
-	calyx.mesh = mk_cyl(FLOWER_RADIUS * 0.46, FLOWER_RADIUS * 0.05)
+	calyx.mesh = mk_cyl(FLOWER_RADIUS * 0.42, FLOWER_RADIUS * 0.06)
 	calyx.material_override = MAT_CALYX
-	calyx.position = Vector3(0.0, -0.055, 0.0)
+	calyx.position = Vector3(0.0, -0.010, 0.0)
 	flower.add_child(calyx)
 
 	# 六枚花瓣：基本平铺，只有很轻的上翘，保证从任何角度都不遮花心
@@ -138,11 +138,11 @@ func _build_display_flower() -> void:
 		pivot.rotation_degrees = Vector3(0.0, i * 60.0, 0.0)
 		var petal := MeshInstance3D.new()
 		petal.mesh = mk_sphere(0.5)
-		petal.scale = Vector3(FLOWER_RADIUS * 0.84, FLOWER_RADIUS * 0.10,
-			FLOWER_RADIUS * 0.96)
+		petal.scale = Vector3(FLOWER_RADIUS * 0.50, FLOWER_RADIUS * 0.07,
+			FLOWER_RADIUS * 0.72)
 		petal.material_override = MAT_PETAL
-		petal.position = Vector3(0.0, 0.004, FLOWER_RADIUS * 0.80)
-		petal.rotation_degrees = Vector3(-4.0, 0.0, 0.0)
+		petal.position = Vector3(0.0, FLOWER_RADIUS * 0.03, FLOWER_RADIUS * 0.66)
+		petal.rotation_degrees = Vector3(-8.0, 0.0, 0.0)
 		pivot.add_child(petal)
 		flower.add_child(pivot)
 
