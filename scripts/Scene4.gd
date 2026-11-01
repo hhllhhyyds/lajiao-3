@@ -34,7 +34,6 @@ var ui_timer_lbl: Label
 var ui_temp_minus: Button
 var ui_temp_plus: Button
 var ui_light_btn: Button
-var ui_wait_btn: Button
 
 func _ready() -> void:
 	scene_number = 4
@@ -358,13 +357,6 @@ func _build_control_panel() -> void:
 	ui_timer_lbl.add_theme_color_override("font_color", Color(0.75, 0.90, 0.78))
 	vb.add_child(ui_timer_lbl)
 
-	ui_wait_btn = Button.new(); ui_wait_btn.text = "⏩  点击此处加速模拟培养过程"
-	ui_wait_btn.custom_minimum_size = Vector2(0, 78)
-	_style_button(ui_wait_btn, Color(0.08, 0.32, 0.14))
-	ui_wait_btn.add_theme_font_size_override("font_size", 28)
-	ui_wait_btn.pressed.connect(_on_wait_pressed)
-	ui_wait_btn.visible = false
-	vb.add_child(ui_wait_btn)
 
 # =====================================================================
 # 步骤定义
@@ -424,7 +416,7 @@ func _define_steps() -> void:
 		{
 			"title": "② 热激暗培养（33–37 ℃，黑暗，2–10 天）",
 			"body": "花药正在高温暗培养箱中进行热激处理。\n"
-				+ "点击右侧的【⏩ 加速模拟培养过程】按钮，观察花药的变化。\n"
+				+ "培养过程会自动推进，观察花药逐渐膨大、转绿。\n"
 				+ "花药将逐渐膨大，小孢子（花粉）细胞开始脱分化，形成愈伤组织。",
 			"click_to_advance": false,
 			"active_objects": []
@@ -441,7 +433,7 @@ func _define_steps() -> void:
 		{
 			"title": "④ 光照培养，愈伤组织增殖",
 			"body": "在 25 ℃ 光照条件下，愈伤组织将快速增殖成较大的绿色组织块。\n"
-				+ "点击【⏩ 加速模拟培养过程】按钮，观察愈伤组织的生长。",
+				+ "培养过程会自动推进，观察愈伤组织的生长。",
 			"click_to_advance": false,
 			"active_objects": [],
 			"completion_text": "愈伤组织诱导完成！\n经过热激（33–37℃，黑暗）→ 光照（25℃）两阶段处理，\n花药中的单倍体小孢子（花粉细胞）成功脱分化形成了愈伤组织。\n这是单倍体育种最关键的一步！\n接下来将诱导愈伤组织分化出芽和根，发育成完整植株。"
@@ -470,7 +462,6 @@ func _on_interactable_clicked(obj_name: String) -> void:
 					_animate_dish_to(Vector3(-4.05, 0.98, -2.2))
 					await get_tree().create_timer(1.0).timeout
 					advance_step()
-					ui_wait_btn.visible = true
 		3:
 			if obj_name == "light_incubator":
 				if temp_set < 23.0 or temp_set > 27.0:
@@ -483,10 +474,15 @@ func _on_interactable_clicked(obj_name: String) -> void:
 					_animate_dish_to(Vector3(4.05, 0.98, -2.2))
 					await get_tree().create_timer(1.0).timeout
 					advance_step()
-					ui_wait_btn.visible = true
-					timer_running = false; growth_timer = 0.0
 		_:
 			pass
+
+## 进入培养阶段就自动开始模拟（原来靠"加速模拟"按钮触发，按钮已删）
+func _show_step(idx: int) -> void:
+	super._show_step(idx)
+	if idx == 2 or idx == 4:
+		growth_timer = 0.0
+		timer_running = true
 
 ## 暗培养结束、转入光照箱时：皿里的花药换成黄绿色愈伤组织团块
 func _swap_anther_to_callus() -> void:
@@ -543,11 +539,6 @@ func _update_light_display() -> void:
 	else:
 		ui_light_btn.text = "💡  当前：光照模式  →  切换黑暗"
 
-func _on_wait_pressed() -> void:
-	if timer_running: return
-	timer_running = true
-	ui_wait_btn.disabled = true
-
 # =====================================================================
 # 培养生长动画（_process）
 # =====================================================================
@@ -570,12 +561,10 @@ func _process(delta: float) -> void:
 				mat.albedo_color = Color(0.85 - t * 0.4, 0.70 + t * 0.15, 0.18 + t * 0.15)
 		if growth_timer >= 7.0:
 			timer_running = false
-			ui_wait_btn.disabled = false
 			flash_message("热激处理完成！花药已膨大，愈伤组织形成", true)
 			await get_tree().create_timer(1.5).timeout
 			advance_step()
 			_refresh_highlights(["light_incubator"])
-			ui_wait_btn.visible = false
 
 	elif current_step_index == 4:
 		ui_timer_lbl.text = "光照培养：%.1f 天" % _days_shown
@@ -587,7 +576,6 @@ func _process(delta: float) -> void:
 				mat.albedo_color = Color(0.30, 0.78, 0.32)
 		if growth_timer >= 10.0:
 			timer_running = false
-			ui_wait_btn.disabled = false
 			flash_message("愈伤组织充分增殖，可进入下一关！", true)
 			await get_tree().create_timer(1.5).timeout
 			advance_step()
