@@ -58,6 +58,7 @@ func _setup_scene() -> void:
 	_build_light_incubator()
 	_build_operation_table()
 	_build_control_panel()
+	_park_tooltips()
 
 
 ## box 墙面的 UV 是 0..1，直接套世界坐标 UV 的材质会把瓷砖拉成两米一块。
@@ -265,6 +266,31 @@ func _build_control_panel() -> void:
 # =====================================================================
 # 步骤定义
 # =====================================================================
+## 红色名称牌：和场景三一样醒目，并抬到固定标签上方
+func _style_tooltip(_obj_name: String, lbl: Label3D) -> void:
+	lbl.font_size = 52
+	lbl.outline_size = 10
+	lbl.modulate = Color(1.0, 0.26, 0.18)
+
+func _tooltip_offset(_obj_name: String) -> Vector3:
+	return Vector3.ZERO
+
+## 每个对象上方已经有固定标签，把红色名称牌摆到那条标签的正上方
+const _LABEL_TOPS := {
+	"dark_incubator": 0.62,
+	"light_incubator": 0.62,
+	"anther_dish": 0.34,
+}
+
+func _park_tooltips() -> void:
+	for nm in _LABEL_TOPS:
+		var area: Area3D = interactables.get(nm, {}).get("area")
+		if area == null:
+			continue
+		for ch in area.get_children():
+			if ch is Label3D and not ch.get_meta("static_label", false):
+				ch.position = Vector3(0.0, float(_LABEL_TOPS[nm]) + 0.52, 0.0)
+
 func _define_steps() -> void:
 	steps = [
 		{
