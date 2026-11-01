@@ -268,8 +268,8 @@ func _build_control_panel() -> void:
 # =====================================================================
 ## 红色名称牌：和场景三一样醒目，并抬到固定标签上方
 func _style_tooltip(_obj_name: String, lbl: Label3D) -> void:
-	lbl.font_size = 52
-	lbl.outline_size = 10
+	lbl.font_size = 34
+	lbl.outline_size = 7
 	lbl.modulate = Color(1.0, 0.26, 0.18)
 
 func _tooltip_offset(_obj_name: String) -> Vector3:
@@ -287,9 +287,12 @@ func _park_tooltips() -> void:
 		var area: Area3D = interactables.get(nm, {}).get("area")
 		if area == null:
 			continue
+		# 按到相机的距离补偿 pixel_size，三个红字看起来才一样大
+		var dist := area.global_position.distance_to(camera.global_position)
 		for ch in area.get_children():
 			if ch is Label3D and not ch.get_meta("static_label", false):
 				ch.position = Vector3(0.0, float(_LABEL_TOPS[nm]) + 0.52, 0.0)
+				ch.pixel_size = 0.0040 * dist / 5.6
 
 func _define_steps() -> void:
 	steps = [
