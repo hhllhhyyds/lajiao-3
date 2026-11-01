@@ -37,10 +37,14 @@ const POS_CABINET  := Vector3( 2.05, 1.10, -0.22)
 const POS_TWEEZERS := Vector3( 2.45, 1.12, -0.75)
 const POS_MEDIUM   := Vector3( 2.45, 1.16,  1.15)
 
-# 镊子的平放姿态（台面上）
-const TWZ_REST_POS := Vector3(2.45, 1.030, -0.75)
-const TWZ_REST_ROT := Vector3(0.0, 14.0, 0.0)
+# 镊子起始姿态：悬在花药正前方，尖端对着花药（+X 是镊子长轴，Y 转 90° 后指向 -Z）
+const TWZ_REST_POS := Vector3(-4.50, 1.35, 0.95)
+const TWZ_REST_ROT := Vector3(0.0, 90.0, 0.0)
+# 提着花药时，镊子中心比目标点往相机方向退 0.65m（钳口正好落在目标上）
+const TWZ_CARRY_DZ := 0.65
 
+var bud_label: LabelProjector.TagLabel
+var twz_label: LabelProjector.TagLabel
 var tweezer_model: Node3D
 var held_anther: MeshInstance3D
 
@@ -271,6 +275,7 @@ func _build_flower_bud() -> void:
 		if ch is Label3D and not ch.get_meta("static_label", false):
 			ch.position = Vector3(0.0, -0.38, 0.0)
 	var lbl_bud := add_label3d("花药", Vector3(-4.5, 1.72, 0.3), 50, Color(0.9, 1.0, 0.7))
+	bud_label = lbl_bud
 	lbl_bud.outline_size = 8; lbl_bud.outline_modulate = Color(0.1, 0.25, 0.05, 0.9)
 
 func _build_medium() -> void:
@@ -295,56 +300,91 @@ func _build_medium() -> void:
 
 	# 夹在尖端的花药（剥取后才出现）
 	held_anther = MeshInstance3D.new()
-	held_anther.mesh = mk_sphere(0.0085)
+	held_anther.mesh = mk_sphere(0.020)
 	held_anther.material_override = MAT_ANTHER
 	held_anther.position = Vector3(0.130, 0.0, 0.0)
 	held_anther.visible = false
 	tweezer_model.add_child(held_anther)
 	create_interactable("tweezers",
-		Vector3(2.45, 1.08, -0.75), mk_box(Vector3(1.1, 0.25, 0.25)),
+		Vector3(-4.50, 1.35, 0.62), mk_box(Vector3(0.36, 0.36, 0.95)),
 		Color(0.72, 0.72, 0.75, 0.0), Color(0.90, 0.95, 1.0), "无菌镊子（剥取花药）")
 	interactables["tweezers"]["area"].get_child(0).visible = false
-	var lbl_twz := add_label3d("无菌镊子", Vector3(2.45, 1.40, -0.75), 44, Color(0.86, 0.87, 0.90))
+	var lbl_twz := attach_label3d("tweezers", "无菌镊子", Vector3(0.02, -0.30, 0.55), 44,
+		Color(0.86, 0.87, 0.90))
+	twz_label = lbl_twz
 	lbl_twz.outline_size = 10; lbl_twz.outline_modulate = Color(0.20, 0.20, 0.20, 1.0)
 
-## 镊子的三个状态：台面平放 / 抬起夹住花药 / 移到培养皿放下
+## 镊子从第①步起就夹着花药，跟着步骤在试剂瓶之间移动，最后接种到培养基
 func _show_step(idx: int) -> void:
 	super._show_step(idx)
 	if tweezer_model == null or not is_instance_valid(tweezer_model):
 		return
+	# 花药从第①步起就在镊子上，台面上那颗原始花药从这时起隐藏
+	# 第①步点掉花药之后，台面上的花药和它的标签都消失，改成夹在镊子上
+	var picked := idx >= 2
 	if bud_node:
-		bud_node.visible = idx < 7
+		bud_node.visible = not picked
+	interactables["flower_bud"]["area"].get_child(0).visible = not picked
+	if bud_label:
+		bud_label.visible = not picked
+	if held_anther:
+		held_anther.visible = picked
+	# 镊子标签只在取花药和需要点镊子那一步显示，免得跟着满台跑
+	if twz_label:
+		twz_label.visible = idx < 2 or idx == 7
+		if idx == 7:
+			twz_label.position = Vector3(6.85, 0.85, 0.45)
+		else:
+			twz_label.position = Vector3(0.02, -0.30, 0.55)
 	match idx:
-		7: _tweezers_lift()
+		2: _tweezers_dip(POS_ALCOHOL)
+		3: _tweezers_dip(POS_WATER1)
+		4: _tweezers_dip(POS_NACLO)
+		5: _tweezers_dip(POS_WATER2)
+		6: _tweezers_carry(POS_CABINET)
+		7: _tweezers_carry(POS_CABINET + Vector3(0.0, 0.30, 0.10))
 		8: _tweezers_transfer()
 		_: _tweezers_rest()
 
 func _tweezers_rest() -> void:
-	if held_anther:
-		held_anther.visible = false
 	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_property(tweezer_model, "position", TWZ_REST_POS, 0.45)
 	tw.parallel().tween_property(tweezer_model, "rotation_degrees", TWZ_REST_ROT, 0.45)
 
-func _tweezers_lift() -> void:
+## 悬停到某个试剂瓶口，先靠近再往下浸一下
+func _tweezers_dip(target: Vector3) -> void:
+	var hover := Vector3(target.x, target.y + 0.16, target.z + TWZ_CARRY_DZ)
+	var dipped := Vector3(hover.x, hover.y - 0.14, hover.z - 0.10)
 	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tw.tween_property(tweezer_model, "position", Vector3(1.75, 1.56, -0.20), 0.55)
-	tw.parallel().tween_property(tweezer_model, "rotation_degrees", Vector3(0.0, 14.0, -35.0), 0.55)
-	tw.tween_callback(func():
-		if held_anther:
-			held_anther.visible = true)
+	tw.tween_property(tweezer_model, "position", hover, 0.55)
+	tw.parallel().tween_property(tweezer_model, "rotation_degrees",
+		Vector3(0.0, 90.0, -12.0), 0.55)
+	tw.tween_property(tweezer_model, "position", dipped, 0.30)
+	tw.tween_property(tweezer_model, "position", hover, 0.30)
+
+## 平移到某个位置（保持夹持姿态）
+func _tweezers_carry(target: Vector3) -> void:
+	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	tw.tween_property(tweezer_model, "position",
+		Vector3(target.x, target.y + 0.55, target.z + TWZ_CARRY_DZ), 0.55)
+	tw.parallel().tween_property(tweezer_model, "rotation_degrees",
+		Vector3(0.0, 135.0, -12.0), 0.55)
 
 func _tweezers_transfer() -> void:
 	if held_anther:
 		held_anther.visible = true
+	var above := Vector3(POS_MEDIUM.x, POS_MEDIUM.y + 0.50, POS_MEDIUM.z + TWZ_CARRY_DZ)
+	var down := Vector3(POS_MEDIUM.x, POS_MEDIUM.y + 0.10, POS_MEDIUM.z + TWZ_CARRY_DZ - 0.10)
 	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tw.tween_property(tweezer_model, "position", Vector3(1.98, 1.60, 1.27), 0.6)
-	tw.parallel().tween_property(tweezer_model, "rotation_degrees", Vector3(0.0, 14.0, -45.0), 0.6)
-	tw.tween_property(tweezer_model, "position", Vector3(1.98, 1.55, 1.27), 0.3)
+	tw.tween_property(tweezer_model, "position", above, 0.6)
+	tw.parallel().tween_property(tweezer_model, "rotation_degrees",
+		Vector3(0.0, 90.0, -20.0), 0.6)
+	tw.tween_property(tweezer_model, "position", down, 0.35)
 	tw.tween_callback(func():
 		if held_anther:
 			held_anther.visible = false
 		_place_anthers())
+	tw.tween_property(tweezer_model, "position", above, 0.30)
 	tw.tween_property(tweezer_model, "position", TWZ_REST_POS, 0.65)
 	tw.parallel().tween_property(tweezer_model, "rotation_degrees", TWZ_REST_ROT, 0.65)
 
@@ -450,7 +490,6 @@ func _on_interactable_clicked(obj_name: String) -> void:
 	if obj_name == correct:
 		flash_message(step.get("correct_message", "正确！"), true)
 		_pulse_object(obj_name)
-		_animate_bud_to_step(current_step_index)
 		await get_tree().create_timer(1.0).timeout
 		advance_step()
 	elif step.get("active_objects", []).has(obj_name):
