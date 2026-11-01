@@ -9,6 +9,8 @@ const C_PANEL_DARK   := Color(0.03, 0.10, 0.04, 0.93)
 const C_ACCENT_GREEN := Color(0.25, 0.85, 0.35)
 const C_TEXT_LIGHT   := Color(0.88, 0.95, 0.88)
 const C_TEXT_TITLE   := Color(0.30, 1.00, 0.45)
+## UI 文字整体放大系数（对话框、HUD、提示条都走 _style_label）
+const UI_TEXT_SCALE := 1.10
 const C_HIGHLIGHT    := Color(1.00, 0.90, 0.15)
 const C_CORRECT      := Color(0.20, 0.90, 0.30)
 const C_WRONG        := Color(0.95, 0.25, 0.15)
@@ -138,7 +140,7 @@ func _create_dialog() -> void:
 	dialog_panel.anchor_top = 1.0
 	dialog_panel.anchor_bottom = 1.0
 	dialog_panel.anchor_right = 1.0
-	dialog_panel.offset_top = -290.0
+	dialog_panel.offset_top = -320.0
 	dialog_panel.offset_bottom = 0.0
 	_apply_panel_style(dialog_panel, C_PANEL_DARK)
 	canvas_layer.add_child(dialog_panel)
@@ -156,9 +158,9 @@ func _create_dialog() -> void:
 
 	dialog_body_lbl = Label.new()
 	dialog_body_lbl.position = Vector2(24, 82)
-	dialog_body_lbl.size = Vector2(1100, 185)
+	dialog_body_lbl.size = Vector2(1160, 210)
 	dialog_body_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_style_label(dialog_body_lbl, 22, C_TEXT_LIGHT)
+	_style_label(dialog_body_lbl, 21, C_TEXT_LIGHT)
 	dialog_panel.add_child(dialog_body_lbl)
 
 	next_btn = Button.new()
@@ -173,7 +175,7 @@ func _create_dialog() -> void:
 	next_btn.text = "继续 ▶"
 	next_btn.visible = false
 	_style_button(next_btn, Color(0.12, 0.45, 0.18))
-	next_btn.add_theme_font_size_override("font_size", 28)
+	next_btn.add_theme_font_size_override("font_size", 31)
 	next_btn.pressed.connect(_on_next_pressed)
 	dialog_panel.add_child(next_btn)
 
@@ -182,11 +184,11 @@ func _create_dialog() -> void:
 	hint_lbl.anchor_right = 1.0
 	hint_lbl.anchor_top = 0.5
 	hint_lbl.anchor_bottom = 0.5
-	hint_lbl.offset_left = -210.0
+	hint_lbl.offset_left = -246.0
 	hint_lbl.offset_right = -18.0
 	hint_lbl.offset_top = -34.0
 	hint_lbl.offset_bottom = 34.0
-	hint_lbl.text = "← 点击视野中名称为红色突出显示的物体进行后续操作"
+	hint_lbl.text = "← 点击红色高亮的物体继续"
 	hint_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_style_label(hint_lbl, 22, Color(0.82, 0.72, 1.0))
@@ -205,7 +207,7 @@ func _create_back_button() -> void:
 	btn.offset_top = 10.0
 	btn.offset_bottom = 58.0
 	_style_button(btn, Color(0.22, 0.10, 0.04))
-	btn.add_theme_font_size_override("font_size", 22)
+	btn.add_theme_font_size_override("font_size", 24)
 	btn.pressed.connect(GameManager.go_to_level_select)
 	canvas_layer.add_child(btn)
 
@@ -220,7 +222,9 @@ func _show_step(idx: int) -> void:
 	var step: Dictionary = steps[idx]
 	step_lbl.text = "步骤 %d / %d" % [idx + 1, steps.size()]
 	dialog_title_lbl.text = step.get("title", "")
+	_fit_title_width()
 	dialog_body_lbl.text  = step.get("body", "")
+	_fit_dialog_height()
 
 	var auto_adv: bool = step.get("click_to_advance", false)
 	next_btn.visible = auto_adv
@@ -314,7 +318,7 @@ func create_interactable(
 	if tooltip != "":
 		var lbl := Label3D.new()
 		lbl.text = tooltip
-		lbl.font_size = 36
+		lbl.font_size = 39
 		lbl.modulate = Color(1.0, 0.55, 0.55)
 		lbl.outline_size = 6
 		lbl.outline_modulate = Color(0.3, 0.0, 0.0, 0.8)
@@ -514,8 +518,29 @@ func _apply_panel_style(p: Panel, color: Color) -> void:
 	s.border_color = C_BORDER
 	p.add_theme_stylebox_override("panel", s)
 
+## 对话框高度跟着正文走：短文案不该顶着一块 320px 的空板子
+func _fit_dialog_height() -> void:
+	if dialog_panel == null or dialog_body_lbl == null:
+		return
+	# 不能用 reset_size()：会把 autowrap 标签的宽度重置掉，正文变成一行一个字
+	var body_h := dialog_body_lbl.get_minimum_size().y
+	var need := 106.0 + body_h + 24.0
+	dialog_panel.offset_top = -clampf(need, 210.0, 330.0)
+
+## 标题按字宽自适应：字号放大后，Scene2 那种长标题会顶出屏幕
+func _fit_title_width() -> void:
+	if dialog_title_lbl == null:
+		return
+	var f := dialog_title_lbl.get_theme_font("font")
+	var fs := int(dialog_title_lbl.get_theme_font_size("font_size"))
+	var avail := 1330.0
+	var w := f.get_string_size(dialog_title_lbl.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	if w > avail and w > 0.0:
+		dialog_title_lbl.add_theme_font_size_override("font_size",
+			maxi(int(floor(fs * avail / w)), 20))
+
 func _style_label(lbl: Label, fs: int, color: Color) -> void:
-	lbl.add_theme_font_size_override("font_size", fs)
+	lbl.add_theme_font_size_override("font_size", int(round(fs * UI_TEXT_SCALE)))
 	lbl.add_theme_color_override("font_color", color)
 
 func _style_button(btn: Button, bg: Color) -> void:
@@ -529,5 +554,5 @@ func _style_button(btn: Button, bg: Color) -> void:
 		s.border_color = C_BORDER.lightened(0.1)
 		s.set_corner_radius_all(6)
 		btn.add_theme_stylebox_override(state, s)
-	btn.add_theme_font_size_override("font_size", 17)
+	btn.add_theme_font_size_override("font_size", 19)
 	btn.add_theme_color_override("font_color", Color.WHITE)

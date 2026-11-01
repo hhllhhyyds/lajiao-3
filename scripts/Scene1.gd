@@ -245,7 +245,7 @@ func _build_dishes() -> void:
 		# 配对成功后才显示的对勾（贴在皿盖旁边，不挡标签）
 		var tick := Label3D.new()
 		tick.text = "✓"
-		tick.font_size = 44
+		tick.font_size = 48
 		tick.pixel_size = 0.0018      # 字高约 8 cm，跟皿同一量级
 		tick.modulate = Color(0.45, 1.0, 0.50)
 		tick.outline_size = 10
@@ -332,7 +332,7 @@ func _build_formula_panel() -> void:
 	panel_title_lbl = Label.new()
 	panel_title_lbl.text = "请选择正确配方："
 	panel_title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	panel_title_lbl.add_theme_font_size_override("font_size", 22)
+	panel_title_lbl.add_theme_font_size_override("font_size", 24)
 	panel_title_lbl.add_theme_color_override("font_color", Color(0.88, 0.91, 0.93))
 	vb.add_child(panel_title_lbl)
 
@@ -350,7 +350,7 @@ func _build_formula_panel() -> void:
 		btn.text = shuffled_formulas[i]
 		btn.custom_minimum_size = Vector2(830, 58)
 		_style_button(btn, Color(0.14, 0.16, 0.18))
-		btn.add_theme_font_size_override("font_size", 17)
+		btn.add_theme_font_size_override("font_size", 19)
 		var fi := i
 		btn.pressed.connect(func(): _on_formula_chosen(shuffled_formulas[fi]))
 		vb.add_child(btn)
@@ -383,13 +383,13 @@ func _build_progress_panel() -> void:
 	pp.add_child(vb)
 
 	var h := Label.new(); h.text = "🧪  配对进度"
-	h.add_theme_font_size_override("font_size", 16)
+	h.add_theme_font_size_override("font_size", 18)
 	h.add_theme_color_override("font_color", Color(0.80, 0.84, 0.86))
 	vb.add_child(h)
 
 	matched_lbl = Label.new()
 	matched_lbl.text = "已配对：0 / 3"
-	matched_lbl.add_theme_font_size_override("font_size", 15)
+	matched_lbl.add_theme_font_size_override("font_size", 16)
 	matched_lbl.add_theme_color_override("font_color", Color(0.86, 0.89, 0.90))
 	vb.add_child(matched_lbl)
 

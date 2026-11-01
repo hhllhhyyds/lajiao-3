@@ -183,7 +183,7 @@ func _build_microscope_overlay() -> void:
 	chrom_display.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	chrom_display.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	chrom_display.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	chrom_display.add_theme_font_size_override("font_size", 26)
+	chrom_display.add_theme_font_size_override("font_size", 29)
 	chrom_display.add_theme_color_override("font_color", Color(0.6, 0.9, 0.65))
 	view_panel.add_child(chrom_display)
 
@@ -194,7 +194,7 @@ func _build_microscope_overlay() -> void:
 	chrom_count_lbl.offset_top = 220; chrom_count_lbl.offset_bottom = 268
 	chrom_count_lbl.text = ""
 	chrom_count_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	chrom_count_lbl.add_theme_font_size_override("font_size", 24)
+	chrom_count_lbl.add_theme_font_size_override("font_size", 26)
 	chrom_count_lbl.add_theme_color_override("font_color", Color(0.85, 1.0, 0.85))
 	micro_overlay.add_child(chrom_count_lbl)
 
@@ -205,7 +205,7 @@ func _build_microscope_overlay() -> void:
 	close_btn.offset_left = -150; close_btn.offset_right = 150
 	close_btn.offset_top = 272; close_btn.offset_bottom = 318
 	_style_button(close_btn, Color(0.22, 0.10, 0.06))
-	close_btn.add_theme_font_size_override("font_size", 22)
+	close_btn.add_theme_font_size_override("font_size", 24)
 	close_btn.pressed.connect(_close_microscope)
 	micro_overlay.add_child(close_btn)
 
@@ -217,7 +217,7 @@ func _build_microscope_overlay() -> void:
 	mark_btn.offset_left = -230; mark_btn.offset_right = 230
 	mark_btn.offset_top = 324; mark_btn.offset_bottom = 372
 	_style_button(mark_btn, Color(0.10, 0.38, 0.16))
-	mark_btn.add_theme_font_size_override("font_size", 22)
+	mark_btn.add_theme_font_size_override("font_size", 24)
 	mark_btn.pressed.connect(_mark_current_as_haploid)
 	micro_overlay.add_child(mark_btn)
 

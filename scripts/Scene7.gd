@@ -111,7 +111,7 @@ func _build_colchicine_bottle() -> void:
 	interactables["colchicine"]["area"].get_child(0).visible = false
 	for ch in interactables["colchicine"]["area"].get_children():
 		if ch is Label3D and not ch.get_meta("static_label", false):
-			ch.font_size = 38
+			ch.font_size = 41
 			ch.position = Vector3(0.0, -0.80, 0.0)
 	add_label3d("秋水仙素", Vector3(-0.8, 2.18, -0.2), 36, Color(1.0, 0.55, 0.10))
 
@@ -156,7 +156,7 @@ func _build_microscope() -> void:
 	interactables["micro_verify"]["area"].get_child(0).visible = false
 	for ch in interactables["micro_verify"]["area"].get_children():
 		if ch is Label3D and not ch.get_meta("static_label", false):
-			ch.font_size = 38
+			ch.font_size = 41
 			ch.position = Vector3(0.0, -0.95, 0.0)
 	micro_static_lbl = add_label3d("光学显微镜\n（染色体倍性验证）", Vector3(2.6, 2.7, -0.3), 40, Color(0.75, 0.30, 1.0))
 	micro_static_lbl.outline_size = 8; micro_static_lbl.outline_modulate = Color(0.2, 0.0, 0.3, 0.8)
@@ -223,7 +223,7 @@ func _build_chrom_overlay() -> void:
 	# 标题
 	var title := Label.new(); title.text = "🔬  显微镜视野 — 染色体数目验证"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 26)
+	title.add_theme_font_size_override("font_size", 29)
 	title.add_theme_color_override("font_color", Color(0.55, 0.92, 0.62))
 	vbox.add_child(title)
 
@@ -245,19 +245,19 @@ func _build_chrom_overlay() -> void:
 
 	var bl := Label.new(); bl.text = "处理前"
 	bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	bl.add_theme_font_size_override("font_size", 22)
+	bl.add_theme_font_size_override("font_size", 24)
 	bl.add_theme_color_override("font_color", Color(0.75, 0.88, 0.78))
 	lv.add_child(bl)
 
 	var n12 := Label.new(); n12.text = "n = 12"
 	n12.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	n12.add_theme_font_size_override("font_size", 60)
+	n12.add_theme_font_size_override("font_size", 66)
 	n12.add_theme_color_override("font_color", Color(0.35, 1.0, 0.52))
 	lv.add_child(n12)
 
 	var hl := Label.new(); hl.text = "（单倍体）"
 	hl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hl.add_theme_font_size_override("font_size", 20)
+	hl.add_theme_font_size_override("font_size", 22)
 	hl.add_theme_color_override("font_color", Color(0.62, 0.82, 0.68))
 	lv.add_child(hl)
 
@@ -265,7 +265,7 @@ func _build_chrom_overlay() -> void:
 	var c12 := Label.new()
 	c12.text = "║ ║ ║ ║ ║ ║\n║ ║ ║ ║ ║ ║"
 	c12.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	c12.add_theme_font_size_override("font_size", 30)
+	c12.add_theme_font_size_override("font_size", 33)
 	c12.add_theme_color_override("font_color", Color(0.40, 0.92, 0.55))
 	lv.add_child(c12)
 
@@ -274,7 +274,7 @@ func _build_chrom_overlay() -> void:
 	arrow.text = "秋水仙素\n▶▶\n染色体\n加　倍"
 	arrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	arrow.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	arrow.add_theme_font_size_override("font_size", 18)
+	arrow.add_theme_font_size_override("font_size", 20)
 	arrow.add_theme_color_override("font_color", Color(0.82, 0.55, 1.0))
 	arrow.custom_minimum_size = Vector2(100, 0)
 	hbox.add_child(arrow)
@@ -288,19 +288,19 @@ func _build_chrom_overlay() -> void:
 
 	var al := Label.new(); al.text = "处理后"
 	al.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	al.add_theme_font_size_override("font_size", 22)
+	al.add_theme_font_size_override("font_size", 24)
 	al.add_theme_color_override("font_color", Color(0.75, 0.85, 0.95))
 	rv.add_child(al)
 
 	var n24 := Label.new(); n24.text = "2n = 24"
 	n24.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	n24.add_theme_font_size_override("font_size", 60)
+	n24.add_theme_font_size_override("font_size", 66)
 	n24.add_theme_color_override("font_color", Color(0.38, 0.72, 1.0))
 	rv.add_child(n24)
 
 	var dl := Label.new(); dl.text = "（双单倍体 DH系）"
 	dl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	dl.add_theme_font_size_override("font_size", 20)
+	dl.add_theme_font_size_override("font_size", 22)
 	dl.add_theme_color_override("font_color", Color(0.62, 0.75, 0.95))
 	rv.add_child(dl)
 
@@ -308,7 +308,7 @@ func _build_chrom_overlay() -> void:
 	var c24 := Label.new()
 	c24.text = "║ ║ ║ ║ ║ ║\n║ ║ ║ ║ ║ ║\n║ ║ ║ ║ ║ ║\n║ ║ ║ ║ ║ ║"
 	c24.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	c24.add_theme_font_size_override("font_size", 30)
+	c24.add_theme_font_size_override("font_size", 33)
 	c24.add_theme_color_override("font_color", Color(0.38, 0.72, 1.0))
 	rv.add_child(c24)
 
@@ -318,7 +318,7 @@ func _build_chrom_overlay() -> void:
 	close_btn.custom_minimum_size = Vector2(200, 46)
 	close_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_style_button(close_btn, Color(0.10, 0.28, 0.12))
-	close_btn.add_theme_font_size_override("font_size", 22)
+	close_btn.add_theme_font_size_override("font_size", 24)
 	close_btn.pressed.connect(func():
 		chrom_overlay.visible = false
 		_show_dh_plant()
@@ -344,12 +344,12 @@ func _build_treatment_panel() -> void:
 	tp.add_child(vb)
 
 	var h := Label.new(); h.text = "🧬  秋水仙素处理状态"
-	h.add_theme_font_size_override("font_size", 15)
+	h.add_theme_font_size_override("font_size", 16)
 	h.add_theme_color_override("font_color", Color(0.75, 0.52, 1.0))
 	vb.add_child(h)
 
 	treatment_progress_lbl = Label.new(); treatment_progress_lbl.text = "等待操作..."
-	treatment_progress_lbl.add_theme_font_size_override("font_size", 14)
+	treatment_progress_lbl.add_theme_font_size_override("font_size", 15)
 	treatment_progress_lbl.add_theme_color_override("font_color", Color(0.82, 0.82, 0.90))
 	vb.add_child(treatment_progress_lbl)
 

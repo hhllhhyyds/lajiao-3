@@ -197,7 +197,7 @@ func _build_temp_controls() -> void:
 
 	var title := Label.new(); title.text = "🌡  温度控制"
 	title.position = Vector2(12, 8); title.size = Vector2(240, 30)
-	title.add_theme_font_size_override("font_size", 17)
+	title.add_theme_font_size_override("font_size", 19)
 	title.add_theme_color_override("font_color", Color(0.6, 0.85, 1.0))
 	temp_panel.add_child(title)
 
@@ -205,7 +205,7 @@ func _build_temp_controls() -> void:
 	temp_lbl.text = "%.1f ℃" % temp_value
 	temp_lbl.position = Vector2(80, 44); temp_lbl.size = Vector2(100, 36)
 	temp_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	temp_lbl.add_theme_font_size_override("font_size", 24)
+	temp_lbl.add_theme_font_size_override("font_size", 26)
 	temp_lbl.add_theme_color_override("font_color", Color(0.9, 0.95, 1.0))
 	temp_panel.add_child(temp_lbl)
 
@@ -233,7 +233,7 @@ func _build_temp_controls() -> void:
 	time_lbl.text = "已处理：0 小时"
 	time_lbl.position = Vector2(12, 88); time_lbl.size = Vector2(244, 30)
 	time_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	time_lbl.add_theme_font_size_override("font_size", 15)
+	time_lbl.add_theme_font_size_override("font_size", 16)
 	time_lbl.add_theme_color_override("font_color", Color(0.7, 0.88, 1.0))
 	time_lbl.visible = false
 	temp_panel.add_child(time_lbl)

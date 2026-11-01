@@ -214,7 +214,7 @@ func _build_control_panel() -> void:
 	cp.add_child(vb)
 
 	var h1 := Label.new(); h1.text = "🌡  培养条件设置（供参考）"
-	h1.add_theme_font_size_override("font_size", 15)
+	h1.add_theme_font_size_override("font_size", 16)
 	h1.add_theme_color_override("font_color", Color(0.4, 0.9, 0.5))
 	vb.add_child(h1)
 
@@ -222,7 +222,7 @@ func _build_control_panel() -> void:
 
 
 	ui_temp_lbl = Label.new(); ui_temp_lbl.text = "  25.0 ℃  "
-	ui_temp_lbl.add_theme_font_size_override("font_size", 20)
+	ui_temp_lbl.add_theme_font_size_override("font_size", 22)
 	ui_temp_lbl.add_theme_color_override("font_color", Color.WHITE)
 	ui_temp_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ui_temp_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -251,7 +251,7 @@ func _build_control_panel() -> void:
 	var sep := Control.new(); sep.custom_minimum_size = Vector2(0, 6); vb.add_child(sep)
 
 	ui_timer_lbl = Label.new(); ui_timer_lbl.text = "培养时间：— 天"
-	ui_timer_lbl.add_theme_font_size_override("font_size", 15)
+	ui_timer_lbl.add_theme_font_size_override("font_size", 16)
 	ui_timer_lbl.add_theme_color_override("font_color", Color(0.75, 0.90, 0.78))
 	vb.add_child(ui_timer_lbl)
 

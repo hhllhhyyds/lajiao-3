@@ -55,7 +55,7 @@ func _build_ui() -> void:
 	title_hbox.add_child(sp)
 
 	var title_lbl := Label.new(); title_lbl.text = "🌶  选择实验关卡"
-	title_lbl.add_theme_font_size_override("font_size", 38)
+	title_lbl.add_theme_font_size_override("font_size", 42)
 	title_lbl.add_theme_color_override("font_color", Color(0.30, 1.0, 0.45))
 	title_hbox.add_child(title_lbl)
 
@@ -80,7 +80,7 @@ func _build_ui() -> void:
 	prog_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	prog_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	prog_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	prog_label.add_theme_font_size_override("font_size", 22)
+	prog_label.add_theme_font_size_override("font_size", 24)
 	prog_label.add_theme_color_override("font_color", Color(0.70, 0.92, 0.72))
 	prog_panel.add_child(prog_label)
 
@@ -139,19 +139,19 @@ func _make_card(lv: int, unlocked: bool, completed: bool, width: int) -> Panel:
 
 	var icon_lbl := Label.new()
 	icon_lbl.text = LEVEL_ICONS[lv - 1]
-	icon_lbl.add_theme_font_size_override("font_size", 44)
+	icon_lbl.add_theme_font_size_override("font_size", 48)
 	top_h.add_child(icon_lbl)
 
 	if completed:
 		var check := Label.new(); check.text = " ✓"
-		check.add_theme_font_size_override("font_size", 36)
+		check.add_theme_font_size_override("font_size", 40)
 		check.add_theme_color_override("font_color", Color(0.25, 0.95, 0.40))
 		top_h.add_child(check)
 
 	var num_lbl := Label.new()
 	num_lbl.text = "关卡 %d：%s" % [lv, GameManager.get_level_name(lv)]
 	num_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	num_lbl.add_theme_font_size_override("font_size", 22)
+	num_lbl.add_theme_font_size_override("font_size", 24)
 	var tc := Color(0.25, 0.95, 0.45) if completed \
 		else (Color(0.30, 0.72, 0.95) if unlocked else Color(0.45, 0.45, 0.50))
 	num_lbl.add_theme_color_override("font_color", tc)
@@ -161,7 +161,7 @@ func _make_card(lv: int, unlocked: bool, completed: bool, width: int) -> Panel:
 	desc_lbl.text = LEVEL_DESC[lv - 1]
 	desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc_lbl.add_theme_font_size_override("font_size", 17)
+	desc_lbl.add_theme_font_size_override("font_size", 19)
 	desc_lbl.add_theme_color_override("font_color", Color(0.68, 0.82, 0.70))
 	vb.add_child(desc_lbl)
 
@@ -200,5 +200,5 @@ func _style_btn(btn: Button, bg: Color) -> void:
 		s.set_border_width_all(1); s.border_color = Color(0.28, 0.65, 0.35)
 		s.set_corner_radius_all(6)
 		btn.add_theme_stylebox_override(state, s)
-	btn.add_theme_font_size_override("font_size", 20)
+	btn.add_theme_font_size_override("font_size", 22)
 	btn.add_theme_color_override("font_color", Color.WHITE)

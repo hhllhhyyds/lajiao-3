@@ -104,7 +104,7 @@ func _dress_bottle(base: Vector3, radius: float, height: float,
 	# 标签上的字：不朝向相机，贴在瓶身上
 	var tag := Label3D.new()
 	tag.text = text
-	tag.font_size = 40
+	tag.font_size = 43
 	tag.billboard = BaseMaterial3D.BILLBOARD_DISABLED
 	tag.no_depth_test = false
 	tag.rotation_degrees = Vector3(0.0, 0.0, 0.0)
@@ -260,7 +260,7 @@ func _build_medium() -> void:
 		Vector3(2.45, 1.10, 1.15), mk_cyl(0.52, 0.20),
 		Color(0.74, 0.88, 0.68, 0.0), Color(0.85, 1.0, 0.75), "愈伤组织诱导培养基")
 	interactables["medium_plate"]["area"].get_child(0).visible = false
-	var lbl_med := attach_label3d("medium_plate", "愈伤组织\n诱导培养基", Vector3(0, 0.38, 0), 28, Color(0.0, 0.85, 0.85))
+	var lbl_med := attach_label3d("medium_plate", "愈伤组织\n诱导培养基", Vector3(0, 0.56, 0), 28, Color(0.0, 0.85, 0.85))
 	if lbl_med: lbl_med.outline_size = 10; lbl_med.outline_modulate = Color(0.0, 0.30, 0.30, 1.0)
 
 	# 真实镊子：尾端圆环 + 两条扁簧，平放在台面上

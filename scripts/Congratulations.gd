@@ -113,7 +113,7 @@ func _btn(parent: Control, text: String, cb: Callable,
 		s.set_border_width_all(1); s.border_color = Color(0.30, 0.70, 0.38)
 		s.set_corner_radius_all(8)
 		btn.add_theme_stylebox_override(state, s)
-	btn.add_theme_font_size_override("font_size", 20)
+	btn.add_theme_font_size_override("font_size", 22)
 	btn.add_theme_color_override("font_color", Color.WHITE)
 	btn.pressed.connect(cb)
 	parent.add_child(btn); return btn

@@ -218,7 +218,7 @@ func _build_info_panel() -> void:
 	info_panel.add_child(vb)
 
 	shoot_lbl = Label.new(); shoot_lbl.text = "🌿 生芽进度：等待转移"
-	shoot_lbl.add_theme_font_size_override("font_size", 24)
+	shoot_lbl.add_theme_font_size_override("font_size", 26)
 	shoot_lbl.add_theme_color_override("font_color", Color(0.40, 0.75, 1.0))
 	shoot_lbl.add_theme_constant_override("outline_size", 2)
 	shoot_lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.1, 0.3, 0.7))
@@ -228,7 +228,7 @@ func _build_info_panel() -> void:
 	shoot_wait_btn.custom_minimum_size = Vector2(0, 68)
 	shoot_wait_btn.visible = false
 	_style_button(shoot_wait_btn, Color(0.08, 0.22, 0.50))
-	shoot_wait_btn.add_theme_font_size_override("font_size", 24)
+	shoot_wait_btn.add_theme_font_size_override("font_size", 26)
 	shoot_wait_btn.add_theme_constant_override("outline_size", 2)
 	shoot_wait_btn.add_theme_color_override("font_outline_color", Color(0.0, 0.1, 0.3, 0.6))
 	shoot_wait_btn.pressed.connect(func():
@@ -237,7 +237,7 @@ func _build_info_panel() -> void:
 	vb.add_child(shoot_wait_btn)
 
 	root_lbl = Label.new(); root_lbl.text = "🌱 生根进度：等待转移"
-	root_lbl.add_theme_font_size_override("font_size", 24)
+	root_lbl.add_theme_font_size_override("font_size", 26)
 	root_lbl.add_theme_color_override("font_color", Color(0.72, 0.48, 0.22))
 	root_lbl.add_theme_constant_override("outline_size", 2)
 	root_lbl.add_theme_color_override("font_outline_color", Color(0.2, 0.1, 0.0, 0.7))
@@ -247,7 +247,7 @@ func _build_info_panel() -> void:
 	root_wait_btn.custom_minimum_size = Vector2(0, 68)
 	root_wait_btn.visible = false
 	_style_button(root_wait_btn, Color(0.45, 0.26, 0.10))
-	root_wait_btn.add_theme_font_size_override("font_size", 24)
+	root_wait_btn.add_theme_font_size_override("font_size", 26)
 	root_wait_btn.add_theme_constant_override("outline_size", 2)
 	root_wait_btn.add_theme_color_override("font_outline_color", Color(0.2, 0.1, 0.0, 0.6))
 	root_wait_btn.pressed.connect(func():
