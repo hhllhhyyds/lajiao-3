@@ -27,6 +27,7 @@ const MAT_HOOD_FRAME := preload("res://materials/steel_bright.tres")
 var anther_node: Area3D           # 培养皿交互节点（跟随移动）
 var anther_ball: MeshInstance3D   # 皿内的花药（暗培养阶段）
 var callus_root: Node3D           # 皿内的愈伤组织（光照阶段）
+var callus_mat: StandardMaterial3D  # 愈伤组织的材质（光照后转绿）
 
 # UI 控件
 var ui_temp_lbl: Label
@@ -257,7 +258,7 @@ func _build_operation_table() -> void:
 	callus_root.position = Vector3(0.0, 0.088, 0.0)
 	callus_root.visible = false
 	anther_node.add_child(callus_root)
-	var callus_mat := StandardMaterial3D.new()
+	callus_mat = StandardMaterial3D.new()
 	callus_mat.albedo_color = Color(0.72, 0.82, 0.34)
 	callus_mat.roughness = 0.62
 	var lumps := [
@@ -418,8 +419,8 @@ func _define_steps() -> void:
 		{
 			"title": "② 热激暗培养（33–37 ℃，黑暗，2–10 天）",
 			"body": "花药正在高温暗培养箱中进行热激处理。\n"
-				+ "培养过程会自动推进，观察花药逐渐膨大、转绿。\n"
-				+ "花药将逐渐膨大，小孢子（花粉）细胞开始脱分化，形成愈伤组织。",
+				+ "培养过程会自动推进，观察花药逐渐转绿、形成愈伤组织。\n"
+				+ "小孢子（花粉）细胞开始脱分化，逐渐形成愈伤组织。",
 			"click_to_advance": false,
 			"active_objects": []
 		},
@@ -488,6 +489,8 @@ func _show_step(idx: int) -> void:
 	# 进光照培养箱时，愈伤组织明显长大一档
 	if idx == 4 and callus_root:
 		_set_callus_scale(1.45)
+		if callus_mat:
+			callus_mat.albedo_color = Color(0.56, 0.78, 0.30)
 
 func _set_callus_scale(sc: float) -> void:
 	if callus_root == null:
@@ -567,7 +570,7 @@ func _process(delta: float) -> void:
 			callus_root.scale = Vector3(sc, 1.0 + (sc - 1.0) * 0.7, sc)
 		if growth_timer >= 7.0:
 			timer_running = false
-			flash_message("热激处理完成！花药已膨大，愈伤组织形成", true)
+			flash_message("热激处理完成！愈伤组织已形成", true)
 			await get_tree().create_timer(1.5).timeout
 			advance_step()
 			_refresh_highlights(["light_incubator"])
@@ -576,6 +579,9 @@ func _process(delta: float) -> void:
 		ui_timer_lbl.text = "光照培养：%.1f 天" % _days_shown
 		if callus_root:
 			_set_callus_scale(minf(callus_root.scale.x + delta * 0.28, 2.0))
+		if callus_mat:
+			callus_mat.albedo_color = callus_mat.albedo_color.lerp(
+				Color(0.34, 0.70, 0.26), clampf(delta * 1.2, 0.0, 1.0))
 		if growth_timer >= 10.0:
 			timer_running = false
 			flash_message("愈伤组织充分增殖，可进入下一关！", true)
