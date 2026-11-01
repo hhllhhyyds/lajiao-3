@@ -270,7 +270,7 @@ func _build_control_panel() -> void:
 	var cp := Panel.new()
 	cp.anchor_right = 1.0
 	cp.offset_left = -310; cp.offset_right = -10
-	cp.offset_top = 70; cp.offset_bottom = 210
+	cp.offset_top = 70; cp.offset_bottom = 236
 	var ps := StyleBoxFlat.new()
 	ps.bg_color = Color(0.04, 0.10, 0.06, 0.95)
 	ps.set_border_width_all(1); ps.border_color = Color(0.22, 0.55, 0.28)
@@ -280,13 +280,13 @@ func _build_control_panel() -> void:
 
 	var vb := VBoxContainer.new()
 	vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	vb.offset_left = 12; vb.offset_right = -12
+	vb.offset_left = 324; vb.offset_right = -12
 	vb.offset_top = 10; vb.offset_bottom = -10
 	vb.add_theme_constant_override("separation", 10)
 	cp.add_child(vb)
 
 	var h1 := Label.new(); h1.text = "🌡  培养条件设置（供参考）"
-	h1.add_theme_font_size_override("font_size", 16)
+	h1.add_theme_font_size_override("font_size", 24)
 	h1.add_theme_color_override("font_color", Color(0.4, 0.9, 0.5))
 	vb.add_child(h1)
 
@@ -294,27 +294,30 @@ func _build_control_panel() -> void:
 
 
 	ui_temp_lbl = Label.new(); ui_temp_lbl.text = "  25.0 ℃  "
-	ui_temp_lbl.add_theme_font_size_override("font_size", 22)
+	ui_temp_lbl.add_theme_font_size_override("font_size", 34)
 	ui_temp_lbl.add_theme_color_override("font_color", Color.WHITE)
 	ui_temp_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ui_temp_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hb_t.add_child(ui_temp_lbl)
 
 	ui_light_btn = Button.new()
-	ui_light_btn.custom_minimum_size = Vector2(90, 34)
+	ui_light_btn.custom_minimum_size = Vector2(150, 52)
 	_style_button(ui_light_btn, Color(0.35, 0.28, 0.04))
+	ui_light_btn.add_theme_font_size_override("font_size", 24)
 	ui_light_btn.pressed.connect(func(): _on_toggle_light())
 	hb_t.add_child(ui_light_btn)
 
 	ui_temp_plus = Button.new(); ui_temp_plus.text = "升温 ▲"
-	ui_temp_plus.custom_minimum_size = Vector2(72, 34)
+	ui_temp_plus.custom_minimum_size = Vector2(112, 52)
 	_style_button(ui_temp_plus, Color(0.50, 0.18, 0.10))
+	ui_temp_plus.add_theme_font_size_override("font_size", 24)
 	ui_temp_plus.pressed.connect(func(): _on_temp_up())
 	hb_t.add_child(ui_temp_plus)
 
 	ui_temp_minus = Button.new(); ui_temp_minus.text = "▼ 降温"
-	ui_temp_minus.custom_minimum_size = Vector2(72, 34)
+	ui_temp_minus.custom_minimum_size = Vector2(112, 52)
 	_style_button(ui_temp_minus, Color(0.15, 0.22, 0.50))
+	ui_temp_minus.add_theme_font_size_override("font_size", 24)
 	ui_temp_minus.pressed.connect(func(): _on_temp_down())
 	hb_t.add_child(ui_temp_minus)
 
@@ -323,13 +326,14 @@ func _build_control_panel() -> void:
 	var sep := Control.new(); sep.custom_minimum_size = Vector2(0, 6); vb.add_child(sep)
 
 	ui_timer_lbl = Label.new(); ui_timer_lbl.text = "培养时间：— 天"
-	ui_timer_lbl.add_theme_font_size_override("font_size", 16)
+	ui_timer_lbl.add_theme_font_size_override("font_size", 22)
 	ui_timer_lbl.add_theme_color_override("font_color", Color(0.75, 0.90, 0.78))
 	vb.add_child(ui_timer_lbl)
 
 	ui_wait_btn = Button.new(); ui_wait_btn.text = "⏩  加速模拟培养过程"
-	ui_wait_btn.custom_minimum_size = Vector2(0, 68)
+	ui_wait_btn.custom_minimum_size = Vector2(0, 78)
 	_style_button(ui_wait_btn, Color(0.08, 0.32, 0.14))
+	ui_wait_btn.add_theme_font_size_override("font_size", 28)
 	ui_wait_btn.pressed.connect(_on_wait_pressed)
 	ui_wait_btn.visible = false
 	vb.add_child(ui_wait_btn)
