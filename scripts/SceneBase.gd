@@ -237,6 +237,10 @@ func _show_step(idx: int) -> void:
 func _tooltip_offset(_obj_name: String) -> Vector3:
 	return Vector3.ZERO
 
+## 子类可覆盖：悬停名称牌的字号/颜色/描边
+func _style_tooltip(_obj_name: String, _lbl: Label3D) -> void:
+	pass
+
 func _refresh_highlights(active_names: Array) -> void:
 	for nm in interactables:
 		var obj := interactables[nm] as Dictionary
@@ -327,6 +331,7 @@ func create_interactable(
 		lbl.modulate = Color(1.0, 0.55, 0.55)
 		lbl.outline_size = 6
 		lbl.outline_modulate = Color(0.3, 0.0, 0.0, 0.8)
+		_style_tooltip(obj_name, lbl)
 		lbl.position = Vector3(0.0, _mesh_top(mesh) + 0.35, 0.0) + _tooltip_offset(obj_name)
 		lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		lbl.no_depth_test = true

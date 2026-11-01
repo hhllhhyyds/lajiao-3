@@ -92,8 +92,17 @@ func _panel(size: Vector3, pos: Vector3, mat: Material) -> MeshInstance3D:
 ## 给瓶子加标签纸、液面标签上的字，让它看起来是被用过的试剂瓶
 ## 场景三每个器物上方都已经有固定标签，悬停名称牌再往上抬一截，
 ## 免得红色提示压在固定标签上
-func _tooltip_offset(_obj_name: String) -> Vector3:
-	return Vector3(0.0, 0.52, 0.0)
+## 场景三的红色提示牌做得和场景二一样醒目
+func _style_tooltip(_obj_name: String, lbl: Label3D) -> void:
+	lbl.font_size = 52
+	lbl.outline_size = 10
+	lbl.modulate = Color(1.0, 0.26, 0.18)
+
+func _tooltip_offset(obj_name: String) -> Vector3:
+	# 培养基牌子比别的宽，再抬高一点并往左让，避开右侧"无菌镊子"的固定标签
+	if obj_name == "medium_plate":
+		return Vector3(-0.32, 0.90, 0.0)
+	return Vector3(0.0, 0.62, 0.0)
 
 func _dress_bottle(base: Vector3, radius: float, height: float,
 		text: String, liquid: Color = Color(0, 0, 0, 0)) -> void:
@@ -169,28 +178,28 @@ func _build_bottles() -> void:
 		Vector3(-3.8, 1.42, -0.3), mk_cyl(0.22, 0.82),
 		Color(0.72, 0.45, 0.10, 0.0), Color(1.0, 0.75, 0.25), "75% 酒精")
 	interactables["bottle_alcohol"]["area"].get_child(0).visible = false
-	var lbl_alc := attach_label3d("bottle_alcohol", "75% 酒精", Vector3(0, 0.76, 0), 40, Color(1.0, 0.85, 0.5))
+	var lbl_alc := attach_label3d("bottle_alcohol", "75% 酒精", Vector3(0, 0.82, 0), 50, Color(1.0, 0.85, 0.5))
 	if lbl_alc: lbl_alc.outline_size = 8; lbl_alc.outline_modulate = Color(0.3, 0.15, 0.0, 0.9)
 
 	create_interactable("bottle_water1",
 		Vector3(-2.3, 1.40, -0.3), mk_cyl(0.20, 0.75),
 		Color(0.60, 0.82, 0.95, 0.0), Color(0.70, 0.95, 1.0), "无菌水")
 	interactables["bottle_water1"]["area"].get_child(0).visible = false
-	var lbl_w1 := attach_label3d("bottle_water1", "无菌水", Vector3(0, 0.68, 0), 40, Color(0.7, 0.9, 1.0))
+	var lbl_w1 := attach_label3d("bottle_water1", "无菌水", Vector3(0, 0.74, 0), 50, Color(0.7, 0.9, 1.0))
 	if lbl_w1: lbl_w1.outline_size = 8; lbl_w1.outline_modulate = Color(0.0, 0.15, 0.3, 0.9)
 
 	create_interactable("bottle_naclo",
 		Vector3(-0.8, 1.42, -0.3), mk_cyl(0.22, 0.82),
 		Color(0.92, 0.93, 0.95, 0.0), Color(1.0, 1.0, 1.0), "8% NaClO")
 	interactables["bottle_naclo"]["area"].get_child(0).visible = false
-	var lbl_naclo := attach_label3d("bottle_naclo", "8% NaClO\n(次氯酸钠)", Vector3(0, 0.78, 0), 40, Color(0.9, 0.95, 1.0))
+	var lbl_naclo := attach_label3d("bottle_naclo", "8% NaClO\n(次氯酸钠)", Vector3(0, 0.84, 0), 50, Color(0.9, 0.95, 1.0))
 	if lbl_naclo: lbl_naclo.outline_size = 8; lbl_naclo.outline_modulate = Color(0.1, 0.15, 0.3, 0.9)
 
 	create_interactable("bottle_water2",
 		Vector3(0.7, 1.40, -0.3), mk_cyl(0.20, 0.75),
 		Color(0.60, 0.82, 0.95, 0.0), Color(0.70, 0.95, 1.0), "无菌水（终漂）")
 	interactables["bottle_water2"]["area"].get_child(0).visible = false
-	var lbl_w2 := attach_label3d("bottle_water2", "无菌水（终漂）", Vector3(0, 0.70, 0), 40, Color(0.7, 0.9, 1.0))
+	var lbl_w2 := attach_label3d("bottle_water2", "无菌水（终漂）", Vector3(0, 0.76, 0), 50, Color(0.7, 0.9, 1.0))
 	if lbl_w2: lbl_w2.outline_size = 8; lbl_w2.outline_modulate = Color(0.0, 0.15, 0.3, 0.9)
 
 func _build_sterile_cabinet() -> void:
@@ -229,7 +238,7 @@ func _build_sterile_cabinet() -> void:
 		Vector3(cx, 2.0, cz), mk_box(Vector3(11.2, 4.6, d - 0.4)),
 		Color(0.62, 0.78, 0.92, 0.0), Color(0.75, 0.92, 1.0), "超净工作台（无菌区）")
 	interactables["sterile_cabinet"]["area"].get_child(0).visible = false
-	var lbl_cab := add_label3d("超净工作台\n(无菌环境)", Vector3(4.6, 1.55, 2.2), 40, Color(1.0, 0.62, 0.80))
+	var lbl_cab := add_label3d("超净工作台\n(无菌环境)", Vector3(4.6, 1.62, 2.2), 50, Color(1.0, 0.62, 0.80))
 	lbl_cab.outline_size = 10; lbl_cab.outline_modulate = Color(0.45, 0.10, 0.25, 1.0)
 
 func _build_flower_bud() -> void:
@@ -252,7 +261,7 @@ func _build_flower_bud() -> void:
 	for ch in interactables["flower_bud"]["area"].get_children():
 		if ch is Label3D and not ch.get_meta("static_label", false):
 			ch.position = Vector3(0.0, -0.38, 0.0)
-	var lbl_bud := add_label3d("花药", Vector3(-4.5, 1.65, 0.3), 40, Color(0.9, 1.0, 0.7))
+	var lbl_bud := add_label3d("花药", Vector3(-4.5, 1.72, 0.3), 50, Color(0.9, 1.0, 0.7))
 	lbl_bud.outline_size = 8; lbl_bud.outline_modulate = Color(0.1, 0.25, 0.05, 0.9)
 
 func _build_medium() -> void:
@@ -265,7 +274,7 @@ func _build_medium() -> void:
 		Vector3(2.45, 1.10, 1.15), mk_cyl(0.52, 0.20),
 		Color(0.74, 0.88, 0.68, 0.0), Color(0.85, 1.0, 0.75), "愈伤组织诱导培养基")
 	interactables["medium_plate"]["area"].get_child(0).visible = false
-	var lbl_med := attach_label3d("medium_plate", "愈伤组织\n诱导培养基", Vector3(0, 0.56, 0), 28, Color(0.0, 0.85, 0.85))
+	var lbl_med := attach_label3d("medium_plate", "愈伤组织\n诱导培养基", Vector3(0, 0.62, 0), 36, Color(0.0, 0.85, 0.85))
 	if lbl_med: lbl_med.outline_size = 10; lbl_med.outline_modulate = Color(0.0, 0.30, 0.30, 1.0)
 
 	# 真实镊子：尾端圆环 + 两条扁簧，平放在台面上
@@ -292,7 +301,7 @@ func _build_medium() -> void:
 		Vector3(2.45, 1.08, -0.75), mk_box(Vector3(1.1, 0.25, 0.25)),
 		Color(0.72, 0.72, 0.75, 0.0), Color(0.90, 0.95, 1.0), "无菌镊子（剥取花药）")
 	interactables["tweezers"]["area"].get_child(0).visible = false
-	var lbl_twz := add_label3d("无菌镊子", Vector3(2.60, 1.86, -0.72), 34, Color(0.86, 0.87, 0.90))
+	var lbl_twz := add_label3d("无菌镊子", Vector3(2.60, 1.94, -0.72), 44, Color(0.86, 0.87, 0.90))
 	lbl_twz.outline_size = 10; lbl_twz.outline_modulate = Color(0.20, 0.20, 0.20, 1.0)
 
 ## 镊子的三个状态：台面平放 / 抬起夹住花药 / 移到培养皿放下
