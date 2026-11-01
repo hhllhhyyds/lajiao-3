@@ -235,20 +235,20 @@ func _build_operation_table() -> void:
 
 	# 皿内那枚花药：淡黄色圆球，放在琼脂中央
 	var anther_ball := MeshInstance3D.new()
-	anther_ball.mesh = mk_sphere(0.058)
+	anther_ball.mesh = mk_sphere(0.080)
 	var bmat := StandardMaterial3D.new()
 	bmat.albedo_color = Color(0.95, 0.89, 0.58)
 	bmat.roughness = 0.42
 	anther_ball.material_override = bmat
-	anther_ball.position = Vector3(0.0, 0.062, 0.0)
+	anther_ball.position = Vector3(0.0, 0.084, 0.0)
 	anther_node.add_child(anther_ball)
 	var anther_hi := MeshInstance3D.new()
-	anther_hi.mesh = mk_sphere(0.020)
+	anther_hi.mesh = mk_sphere(0.027)
 	var hmat := StandardMaterial3D.new()
 	hmat.albedo_color = Color(1.0, 0.97, 0.80)
 	hmat.roughness = 0.30
 	anther_hi.material_override = hmat
-	anther_hi.position = Vector3(-0.020, 0.098, -0.018)
+	anther_hi.position = Vector3(-0.026, 0.132, -0.024)
 	anther_node.add_child(anther_hi)
 
 	# 台面上的花药小块（散落在皿内）
