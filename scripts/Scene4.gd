@@ -146,7 +146,7 @@ func _build_dark_incubator() -> void:
 		mk_box(Vector3(1.9, 2.6, 1.6)),
 		Color(0, 0, 0, 0), Color(0.60, 0.60, 0.85), "高温暗培养箱")
 	interactables["dark_incubator"]["area"].get_child(0).visible = false
-	attach_label3d("dark_incubator", "高温暗培养箱（33–37 ℃，黑暗）", Vector3(0.60, 0.62, 0.62), 40, Color(0.82, 0.80, 1.0))
+	attach_label3d("dark_incubator", "高温暗培养箱（33–37 ℃，黑暗）", Vector3(0.60, 1.46, 0.62), 40, Color(0.82, 0.80, 1.0))
 
 func _build_light_incubator() -> void:
 	_spawn_incubator(Vector3(4.05, 0.0, -2.2), false)
@@ -156,7 +156,7 @@ func _build_light_incubator() -> void:
 		mk_box(Vector3(1.9, 2.6, 1.6)),
 		Color(0, 0, 0, 0), Color(1.0, 1.0, 0.72), "光照培养箱")
 	interactables["light_incubator"]["area"].get_child(0).visible = false
-	attach_label3d("light_incubator", "光照培养箱（25 ℃，光照）", Vector3(-0.60, 0.62, 0.62), 40, Color(0.88, 1.0, 0.62))
+	attach_label3d("light_incubator", "光照培养箱（25 ℃，光照）", Vector3(-0.60, 1.46, 0.62), 40, Color(0.88, 1.0, 0.62))
 
 ## 操作台上方的超净台玻璃罩：四周铝合金框 + 透明玻璃三面一顶
 func _build_hood() -> void:
@@ -372,8 +372,8 @@ func _tooltip_offset(_obj_name: String) -> Vector3:
 
 ## 每个对象上方已经有固定标签，把红色名称牌摆到那条标签的正上方
 const _LABEL_TOPS := {
-	"dark_incubator": 0.62,
-	"light_incubator": 0.62,
+	"dark_incubator": 1.46,
+	"light_incubator": 1.46,
 	"anther_dish": 0.34,
 }
 const _LABEL_DX := {
@@ -391,7 +391,10 @@ func _park_tooltips() -> void:
 		var dist := area.global_position.distance_to(camera.global_position)
 		for ch in area.get_children():
 			if ch is Label3D and not ch.get_meta("static_label", false):
-				ch.position = Vector3(float(_LABEL_DX[nm]), float(_LABEL_TOPS[nm]) + 0.52, 0.0)
+				# 两个柜子的固定标签已经顶到画面上缘，红字再往上会钻进顶部控制条，
+				# 所以柜子的红字挂在标签下方，培养皿仍挂在上方
+				var dy := 0.44 if nm == "anther_dish" else -0.30
+				ch.position = Vector3(float(_LABEL_DX[nm]), float(_LABEL_TOPS[nm]) + dy, 0.0)
 				ch.pixel_size = 0.0040 * dist / 5.6
 
 func _define_steps() -> void:
@@ -459,6 +462,7 @@ func _on_interactable_clicked(obj_name: String) -> void:
 					flash_message("需要切换为【黑暗模式】才能进行热激培养！\n请点击右侧面板的光照切换按钮！", false)
 				else:
 					flash_message("培养皿已放入高温暗培养箱 ✓", true)
+					_swap_anther_to_callus()
 					_animate_dish_to(Vector3(-4.05, 0.98, -2.2))
 					await get_tree().create_timer(1.0).timeout
 					advance_step()
@@ -470,7 +474,6 @@ func _on_interactable_clicked(obj_name: String) -> void:
 					flash_message("需要切换为【光照模式】才能进行光照培养！\n请点击右侧面板的光照切换按钮！", false)
 				else:
 					flash_message("愈伤组织已转入光照培养箱 ✓", true)
-					_swap_anther_to_callus()
 					_animate_dish_to(Vector3(4.05, 0.98, -2.2))
 					await get_tree().create_timer(1.0).timeout
 					advance_step()
@@ -551,14 +554,10 @@ func _process(delta: float) -> void:
 
 	if current_step_index == 2:
 		ui_timer_lbl.text = "热激培养：%.1f 天" % _days_shown
-		# 花药逐渐膨大 → 颜色变绿（愈伤组织）
-		if anther_node:
+		# 愈伤组织团块逐渐长大
+		if callus_root:
 			var sc := 1.0 + clampf(growth_timer / 6.0, 0.0, 0.9)
-			anther_node.scale = Vector3(sc, 0.8 + sc * 0.4, sc)
-			var mat := interactables.get("anther_dish", {}).get("mat") as StandardMaterial3D
-			if mat:
-				var t := clampf(growth_timer / 7.0, 0.0, 1.0)
-				mat.albedo_color = Color(0.85 - t * 0.4, 0.70 + t * 0.15, 0.18 + t * 0.15)
+			callus_root.scale = Vector3(sc, 1.0 + (sc - 1.0) * 0.7, sc)
 		if growth_timer >= 7.0:
 			timer_running = false
 			flash_message("热激处理完成！花药已膨大，愈伤组织形成", true)
@@ -568,12 +567,9 @@ func _process(delta: float) -> void:
 
 	elif current_step_index == 4:
 		ui_timer_lbl.text = "光照培养：%.1f 天" % _days_shown
-		if anther_node:
-			var sc := minf(anther_node.scale.x + delta * 0.35, 2.6)
-			anther_node.scale = Vector3(sc, 1.1, sc)
-			var mat := interactables.get("anther_dish", {}).get("mat") as StandardMaterial3D
-			if mat:
-				mat.albedo_color = Color(0.30, 0.78, 0.32)
+		if callus_root:
+			var sc := minf(callus_root.scale.x + delta * 0.25, 1.9)
+			callus_root.scale = Vector3(sc, 1.0 + (sc - 1.0) * 0.7, sc)
 		if growth_timer >= 10.0:
 			timer_running = false
 			flash_message("愈伤组织充分增殖，可进入下一关！", true)
