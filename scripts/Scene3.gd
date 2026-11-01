@@ -1,12 +1,11 @@
 ## Scene3.gd — 花药消毒与接种
-## 花药消毒处理后在无菌环境下剥取花药并接种到培养基
+## 花药消毒处理后在无菌环境下夹取花药并接种到培养基
 extends SceneBase
 
 # 操作状态追踪
 var disinfect_step: int = 0  # 0=pick bud, 1=alcohol, 2=sterile_water1, 3=naclo, 4=sterile_water2, 5=cabinet, 6=peel, 7=inoculate
 
 # 花药可见节点，用于移动动画
-var bud_node: MeshInstance3D
 
 const BOTTLE_SCENE := preload("res://assets/props/reagent_bottle.glb")
 const MEDIA_SCENE := preload("res://assets/props/media_bottle.glb")
@@ -23,7 +22,7 @@ const MAT_FLOOR := preload("res://materials/floor_epoxy.tres")
 const MAT_LABEL_PAPER := preload("res://materials/label_paper.tres")
 const DISH_SCENE := preload("res://assets/props/petri_dish.glb")
 const TWEEZERS_SCENE := preload("res://assets/props/tweezers.glb")
-const MAT_ANTHER := preload("res://materials/anther_picked_deep.tres")
+const MAT_ANTHER := preload("res://materials/anther_pale.tres")
 const MAT_STEEL_DARK := preload("res://materials/steel_dark.tres")
 const MAT_STEEL_BRIGHT := preload("res://materials/steel_bright.tres")
 
@@ -67,6 +66,7 @@ func _setup_scene() -> void:
 	_build_sterile_cabinet()
 	_build_flower_bud()
 	_build_medium()
+	_park_tooltips()
 
 func _build_lab_bench() -> void:
 	# 台面：深色环氧树脂板，压在不锈钢框上；地面铺环氧地坪
@@ -102,12 +102,19 @@ func _style_tooltip(_obj_name: String, lbl: Label3D) -> void:
 	lbl.outline_size = 10
 	lbl.modulate = Color(1.0, 0.26, 0.18)
 
-func _tooltip_offset(obj_name: String) -> Vector3:
-	# 培养基牌子比别的宽，再抬高一点并往左让，避开右侧"无菌镊子"的固定标签
-	if obj_name == "medium_plate":
-		# 培养皿在最右边，红字单行很长，整体左移并抬高，免得顶出画面
-		return Vector3(-0.50, 0.95, 0.0)
-	return Vector3(0.0, 0.62, 0.0)
+## 红色名称牌统一停在台面前下方的空处：那里既没有器物也没有固定标签，
+## 不管悬停哪个对象都不会挡住东西
+const TOOLTIP_ANCHOR := Vector3(0.20, 1.40, 3.00)
+
+func _tooltip_offset(_obj_name: String) -> Vector3:
+	return Vector3.ZERO
+
+func _park_tooltips() -> void:
+	for nm in interactables:
+		var area: Area3D = interactables[nm]["area"]
+		for ch in area.get_children():
+			if ch is Label3D and not ch.get_meta("static_label", false):
+				ch.position = TOOLTIP_ANCHOR - area.position
 
 func _dress_bottle(base: Vector3, radius: float, height: float,
 		text: String, liquid: Color = Color(0, 0, 0, 0)) -> void:
@@ -119,19 +126,6 @@ func _dress_bottle(base: Vector3, radius: float, height: float,
 	band.material_override = MAT_LABEL_PAPER
 	band.position = Vector3(base.x, label_y, base.z)
 	add_child(band)
-
-	# 标签上的字：不朝向相机，贴在瓶身上
-	var tag := Label3D.new()
-	tag.text = text
-	tag.font_size = 43
-	tag.billboard = BaseMaterial3D.BILLBOARD_DISABLED
-	tag.no_depth_test = false
-	tag.rotation_degrees = Vector3(0.0, 0.0, 0.0)
-	tag.pixel_size = 0.0024
-	tag.modulate = Color(0.12, 0.12, 0.14)
-	tag.outline_size = 0
-	tag.position = Vector3(base.x, label_y, base.z + radius + 0.004)
-	add_child(tag)
 
 	# 液面：只给透明瓶子加
 	if liquid.a > 0.0:
@@ -253,21 +247,11 @@ func _build_sterile_cabinet() -> void:
 		lbl_room.outline_modulate = Color(0.02, 0.03, 0.07, 0.95)
 
 func _build_flower_bud() -> void:
-	# 可见的花药球体（跟随动画移动）
-	bud_node = MeshInstance3D.new()
-	bud_node.mesh = mk_sphere(0.13)
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.78, 0.58, 0.10)
-	mat.no_depth_test = true; mat.render_priority = 2
-	bud_node.material_override = mat
-	bud_node.position = POS_BUD
-	add_child(bud_node)
-
 	create_interactable("flower_bud",
 		Vector3(-4.5, 1.10, 0.3),
 		mk_sphere(0.15),
-		Color(0.78, 0.58, 0.10),
-		Color(1.0, 0.90, 0.25),
+		Color(0.95, 0.89, 0.60),
+		Color(1.0, 0.97, 0.55),
 		"花药（已低温预处理）")
 	for ch in interactables["flower_bud"]["area"].get_children():
 		if ch is Label3D and not ch.get_meta("static_label", false):
@@ -296,7 +280,7 @@ func _build_medium() -> void:
 		"tweezer_tip": MAT_STEEL_DARK,
 	}, Vector3(5.0, 5.0, 5.0))
 
-	# 夹在尖端的花药（剥取后才出现）
+	# 夹在尖端的花药（取花药后出现）
 	held_anther = MeshInstance3D.new()
 	held_anther.mesh = mk_sphere(0.020)
 	held_anther.material_override = MAT_ANTHER
@@ -305,7 +289,7 @@ func _build_medium() -> void:
 	tweezer_model.add_child(held_anther)
 	create_interactable("tweezers",
 		Vector3(-4.50, 1.35, 0.62), mk_box(Vector3(0.36, 0.36, 0.95)),
-		Color(0.72, 0.72, 0.75, 0.0), Color(0.90, 0.95, 1.0), "无菌镊子（剥取花药）")
+		Color(0.72, 0.72, 0.75, 0.0), Color(0.90, 0.95, 1.0), "无菌镊子（夹取花药）")
 	interactables["tweezers"]["area"].get_child(0).visible = false
 	var lbl_twz := attach_label3d("tweezers", "无菌镊子", Vector3(0.02, -0.30, 0.55), 44,
 		Color(0.86, 0.87, 0.90))
@@ -320,8 +304,6 @@ func _show_step(idx: int) -> void:
 	# 花药从第①步起就在镊子上，台面上那颗原始花药从这时起隐藏
 	# 第①步点掉花药之后，台面上的花药和它的标签都消失，改成夹在镊子上
 	var picked := idx >= 2
-	if bud_node:
-		bud_node.visible = not picked
 	interactables["flower_bud"]["area"].get_child(0).visible = not picked
 	if bud_label:
 		bud_label.visible = not picked
@@ -329,18 +311,14 @@ func _show_step(idx: int) -> void:
 		held_anther.visible = picked
 	# 镊子标签只在取花药和需要点镊子那一步显示，免得跟着满台跑
 	if twz_label:
-		twz_label.visible = idx < 2 or idx == 6
-		if idx == 6:
-			twz_label.position = Vector3(6.85, 0.85, 0.45)
-		else:
-			twz_label.position = Vector3(0.02, -0.30, 0.55)
+		twz_label.visible = idx < 2
+		twz_label.position = Vector3(0.02, -0.30, 0.55)
 	match idx:
 		2: _tweezers_dip(POS_ALCOHOL)
 		3: _tweezers_dip(POS_WATER1)
 		4: _tweezers_dip(POS_NACLO)
 		5: _tweezers_dip(POS_WATER2)
-		6: _tweezers_carry(POS_CABINET + Vector3(0.0, 0.30, 0.10))
-		7: _tweezers_transfer()
+		6: _tweezers_transfer()
 		_: _tweezers_rest()
 
 func _tweezers_rest() -> void:
@@ -358,14 +336,6 @@ func _tweezers_dip(target: Vector3) -> void:
 		Vector3(0.0, 90.0, -12.0), 0.55)
 	tw.tween_property(tweezer_model, "position", dipped, 0.30)
 	tw.tween_property(tweezer_model, "position", hover, 0.30)
-
-## 平移到某个位置（保持夹持姿态）
-func _tweezers_carry(target: Vector3) -> void:
-	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tw.tween_property(tweezer_model, "position",
-		Vector3(target.x, target.y + 0.55, target.z + TWZ_CARRY_DZ), 0.55)
-	tw.parallel().tween_property(tweezer_model, "rotation_degrees",
-		Vector3(0.0, 135.0, -12.0), 0.55)
 
 func _tweezers_transfer() -> void:
 	if held_anther:
@@ -399,7 +369,7 @@ func _define_steps() -> void:
 			"title": "📖  步骤说明：花药消毒与接种",
 			"body": "全部操作都在超净台内完成，按顺序进行：\n"
 				+ "① 取花药 → ② 75% 酒精消毒 → ③ 无菌水漂洗 → ④ 8% NaClO 消毒 → "
-				+ "⑤ 无菌水漂洗 → ⑥ 镊子剥取花药 → ⑦ 接种诱导愈伤组织培养基\n"
+				+ "⑤ 无菌水漂洗 → ⑥ 接种诱导愈伤组织培养基\n"
 				+ "每步消毒步骤都不可省略，否则杂菌污染会导致实验失败！",
 			"click_to_advance": true,
 			"active_objects": []
@@ -448,25 +418,15 @@ func _define_steps() -> void:
 			"correct_message": "终漂完成，花药已完全无菌"
 		},
 		{
-			"title": "⑥ 镊子剥取花药",
-			"body": "用无菌镊子小心地从花药中剥离花药（小孢子囊）。\n"
-				+ "注意：剥取时不要损伤花药，也不要混入花丝等其他组织。\n"
-				+ "花药壁细胞是二倍体，会干扰单倍体筛选。",
-			"click_to_advance": false,
-			"active_objects": ["tweezers"],
-			"correct_object": "tweezers",
-			"correct_message": "花药已成功剥离"
-		},
-		{
-			"title": "⑦ 接种到诱导培养基",
-			"body": "将剥离的花药水平放置在愈伤组织诱导培养基上。\n"
+			"title": "⑥ 接种到诱导培养基",
+			"body": "用无菌镊子将花药水平放置在愈伤组织诱导培养基上。\n"
 				+ "花药应均匀分布，避免重叠，接种密度适当。\n"
 				+ "操作完成后立即封口，防止污染。",
 			"click_to_advance": false,
 			"active_objects": ["medium_plate"],
 			"correct_object": "medium_plate",
 			"correct_message": "花药已接种到诱导培养基上！",
-			"completion_text": "花药消毒与接种完成！\n已按正确顺序完成：75% 酒精 → 无菌水 → 8% NaClO → 无菌水漂洗 → 镊子剥取花药 → 接种到诱导培养基。\n严格的消毒程序是实验成功的关键，任何环节疏忽都会导致杂菌污染。\n接下来进行最关键的步骤：愈伤组织诱导培养。"
+			"completion_text": "花药消毒与接种完成！\n已按正确顺序完成：75% 酒精 → 无菌水 → 8% NaClO → 无菌水漂洗 → 接种到诱导培养基。\n严格的消毒程序是实验成功的关键，任何环节疏忽都会导致杂菌污染。\n接下来进行最关键的步骤：愈伤组织诱导培养。"
 		},
 	]
 
@@ -487,30 +447,3 @@ func _pulse_object(nm: String) -> void:
 	var tw := create_tween()
 	tw.tween_property(area, "scale", Vector3(1.25, 1.25, 1.25), 0.15)
 	tw.tween_property(area, "scale", Vector3(1.0, 1.0, 1.0), 0.15)
-
-# 各步骤对应的花药目标位置
-const _STEP_TARGETS := {
-	1: POS_BUD,        # 取花药：花药出现在操作位置（小跳动）
-	2: POS_ALCOHOL,    # 酒精消毒
-	3: POS_WATER1,     # 无菌水漂洗
-	4: POS_NACLO,      # NaClO 消毒
-	5: POS_WATER2,     # 终漂
-	6: POS_CABINET,    # 进入超净工作台
-	7: POS_TWEEZERS,   # 镊子剥取
-	8: POS_MEDIUM,     # 接种诱导培养基
-}
-
-func _animate_bud_to_step(step_idx: int) -> void:
-	if not bud_node: return
-	var target: Vector3 = _STEP_TARGETS.get(step_idx, bud_node.position)
-	if target == bud_node.position: return
-
-	var tw := create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
-	# 先上升一点，再飞向目标，避免穿模
-	var mid := (bud_node.position + target) / 2.0 + Vector3(0, 0.6, 0)
-	tw.tween_property(bud_node, "position", mid, 0.35)
-	tw.tween_property(bud_node, "position", target, 0.45)
-
-	# 到达时小弹跳
-	tw.tween_property(bud_node, "position", target + Vector3(0, 0.08, 0), 0.1)
-	tw.tween_property(bud_node, "position", target, 0.1)
