@@ -232,6 +232,11 @@ func _show_step(idx: int) -> void:
 
 	_refresh_highlights(step.get("active_objects", []))
 
+## 子类可覆盖：悬停名称牌相对"物体顶端 + 0.35"的额外偏移，
+## 用来避开场景里已有的固定标签
+func _tooltip_offset(_obj_name: String) -> Vector3:
+	return Vector3.ZERO
+
 func _refresh_highlights(active_names: Array) -> void:
 	for nm in interactables:
 		var obj := interactables[nm] as Dictionary
@@ -322,7 +327,7 @@ func create_interactable(
 		lbl.modulate = Color(1.0, 0.55, 0.55)
 		lbl.outline_size = 6
 		lbl.outline_modulate = Color(0.3, 0.0, 0.0, 0.8)
-		lbl.position = Vector3(0.0, _mesh_top(mesh) + 0.35, 0.0)
+		lbl.position = Vector3(0.0, _mesh_top(mesh) + 0.35, 0.0) + _tooltip_offset(obj_name)
 		lbl.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 		lbl.no_depth_test = true
 		lbl.visible = false

@@ -90,6 +90,11 @@ func _panel(size: Vector3, pos: Vector3, mat: Material) -> MeshInstance3D:
 	return mi
 
 ## 给瓶子加标签纸、液面标签上的字，让它看起来是被用过的试剂瓶
+## 场景三每个器物上方都已经有固定标签，悬停名称牌再往上抬一截，
+## 免得红色提示压在固定标签上
+func _tooltip_offset(_obj_name: String) -> Vector3:
+	return Vector3(0.0, 0.52, 0.0)
+
 func _dress_bottle(base: Vector3, radius: float, height: float,
 		text: String, liquid: Color = Color(0, 0, 0, 0)) -> void:
 	var label_y := base.y + height * 0.42
