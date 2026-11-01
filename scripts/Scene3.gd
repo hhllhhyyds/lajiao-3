@@ -36,11 +36,11 @@ const POS_CABINET  := Vector3( 2.05, 1.10, -0.22)
 const POS_TWEEZERS := Vector3( 2.45, 1.12, -0.75)
 const POS_MEDIUM   := Vector3( 2.45, 1.16,  1.15)
 
-# 镊子起始姿态：悬在花药正前方，尖端对着花药（+X 是镊子长轴，Y 转 90° 后指向 -Z）
-const TWZ_REST_POS := Vector3(-4.50, 1.35, 0.95)
-const TWZ_REST_ROT := Vector3(0.0, 90.0, 0.0)
-# 提着花药时，镊子中心比目标点往相机方向退 0.65m（钳口正好落在目标上）
-const TWZ_CARRY_DZ := 0.65
+# 镊子长轴是 +X，Y 转 180° 后钳口指向 -X，所以镊子横在画面里、始终水平，
+# 原点比钳口往右退 0.65m
+const TWZ_REST_POS := Vector3(-3.85, 1.22, 0.30)
+const TWZ_REST_ROT := Vector3(0.0, 180.0, 0.0)
+const TWZ_CARRY_DX := 0.65
 
 var bud_label: LabelProjector.TagLabel
 var twz_label: LabelProjector.TagLabel
@@ -280,10 +280,10 @@ func _build_medium() -> void:
 	held_anther.visible = false
 	tweezer_model.add_child(held_anther)
 	create_interactable("tweezers",
-		Vector3(-4.50, 1.35, 0.62), mk_box(Vector3(0.36, 0.36, 0.95)),
+		Vector3(-4.17, 1.22, 0.30), mk_box(Vector3(0.95, 0.36, 0.36)),
 		Color(0.72, 0.72, 0.75, 0.0), Color(0.90, 0.95, 1.0), "无菌镊子（夹取花药）")
 	interactables["tweezers"]["area"].get_child(0).visible = false
-	var lbl_twz := attach_label3d("tweezers", "无菌镊子", Vector3(0.02, -0.30, 0.55), 44,
+	var lbl_twz := attach_label3d("tweezers", "无菌镊子", Vector3(0.0, -0.36, 0.26), 44,
 		Color(0.86, 0.87, 0.90))
 	twz_label = lbl_twz
 	lbl_twz.outline_size = 10; lbl_twz.outline_modulate = Color(0.20, 0.20, 0.20, 1.0)
@@ -320,8 +320,8 @@ func _tweezers_rest() -> void:
 
 ## 悬停到某个试剂瓶口，先靠近再往下浸一下
 func _tweezers_dip(target: Vector3) -> void:
-	var hover := Vector3(target.x, target.y + 0.16, target.z + TWZ_CARRY_DZ)
-	var dipped := Vector3(hover.x, hover.y - 0.14, hover.z - 0.10)
+	var hover := Vector3(target.x + TWZ_CARRY_DX, target.y + 0.16, target.z)
+	var dipped := Vector3(hover.x, hover.y - 0.14, hover.z)
 	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_property(tweezer_model, "position", hover, 0.55)
 	tw.parallel().tween_property(tweezer_model, "rotation_degrees", TWZ_REST_ROT, 0.55)
@@ -331,8 +331,8 @@ func _tweezers_dip(target: Vector3) -> void:
 func _tweezers_transfer() -> void:
 	if held_anther:
 		held_anther.visible = true
-	var above := Vector3(POS_MEDIUM.x, POS_MEDIUM.y + 0.50, POS_MEDIUM.z + TWZ_CARRY_DZ)
-	var down := Vector3(POS_MEDIUM.x, POS_MEDIUM.y + 0.10, POS_MEDIUM.z + TWZ_CARRY_DZ - 0.10)
+	var above := Vector3(POS_MEDIUM.x + TWZ_CARRY_DX, POS_MEDIUM.y + 0.50, POS_MEDIUM.z)
+	var down := Vector3(POS_MEDIUM.x + TWZ_CARRY_DX, POS_MEDIUM.y + 0.10, POS_MEDIUM.z)
 	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_property(tweezer_model, "position", above, 0.6)
 	tw.parallel().tween_property(tweezer_model, "rotation_degrees", TWZ_REST_ROT, 0.6)
