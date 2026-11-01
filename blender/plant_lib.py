@@ -181,13 +181,13 @@ def build_pepper_plant(root, leaf_mats, stem_mat, petal_mat, calyx_mat):
         az = math.pi * 0.25 + i * math.pi * 0.5 + rng.f(-0.12, 0.12)
         grow(Vector((0.0, 0.0, 0.56)), az, 0.62, 0.26, 0.0072, 1)
 
-    # 花：每个枝端一至两朵
-    for idx, (tip, ang) in enumerate(tips):
-        for m in range(2):
-            a = ang + (m - 0.5) * 0.9 + rng.f(-0.2, 0.2)
-            base = tip + Vector((math.cos(a) * 0.045, math.sin(a) * 0.045, 0.03))
-            parts.extend(_flower(f"{root}_fl_{idx}{m}", f"{root}_calyx_{idx}{m}",
-                                 base, a, petal_mat, calyx_mat))
+    # 花：植株只留"一朵花"的挂点，花本身由 Scene2 单独建（要能容下五枚花药，
+    # 参数化小花只有 3cm，放不下，也不该在枝头挂十几朵）
+    if tips:
+        tip, ang = tips[0]
+        stalk_end = tip + Vector((math.cos(ang) * 0.03, math.sin(ang) * 0.03, 0.16))
+        parts.append(tube(f"{root}_flower_stalk", [tip, stalk_end],
+                          [0.006, 0.004], stem_mat, seg=8))
 
     return parts
 
