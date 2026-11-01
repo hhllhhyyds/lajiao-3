@@ -148,11 +148,19 @@ func _anther_specimen(nm: String, local_pos: Vector3, size: float, color: Color,
 	create_interactable(nm, _flower_xf * local_pos, mk_sphere(size), color, hover, tooltip)
 	var area: Area3D = interactables[nm]["area"]
 	area.get_child(0).visible = false
-	# 悬停时的红色名称牌原来浮在花药正上方，正好压在花冠上；
-	# 挪到花冠下方的空处
+	# 悬停名称牌：沿"花心 → 花药"方向推到花冠外侧，贴着所指花药，
+	# 同时不压在花冠上；字号和描边都加大，红色更亮
+	var area_pos: Vector3 = _flower_xf * local_pos
+	var out_dir := Vector3(area_pos.x - FLOWER_CENTER.x, 0.0, area_pos.z - FLOWER_CENTER.z)
+	if out_dir.length() < 0.05:
+		out_dir = Vector3(0.0, 0.0, 1.0)
+	out_dir = out_dir.normalized()
 	for ch in area.get_children():
 		if ch is Label3D:
-			ch.position = Vector3(0.0, -0.82, 0.0)
+			ch.position = out_dir * 1.02 + Vector3(0.0, -0.10, 0.0)
+			ch.font_size = 52
+			ch.outline_size = 10
+			ch.modulate = Color(1.0, 0.26, 0.18)
 	PropKit.spawn(area, ANTHER_SCENE, Vector3(0.0, 0.05, 0.0), Vector3(tilt, 0.0, 0.0), {
 		"anther_body": interactables[nm]["mat"],
 		"anther_filament": MAT_FILAMENT,
