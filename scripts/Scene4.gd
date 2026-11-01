@@ -22,6 +22,7 @@ const MAT_INC_GLASS := preload("res://materials/fridge_door.tres")
 const MAT_INC_GLASS_DARK := preload("res://materials/incubator_glass_dark.tres")
 const MAT_STEEL := preload("res://materials/stainless.tres")
 const MAT_DISPLAY := preload("res://materials/display_black.tres")
+const MAT_HOOD_FRAME := preload("res://materials/steel_bright.tres")
 
 var anther_node: Area3D           # 培养皿交互节点（跟随移动）
 
@@ -156,8 +157,60 @@ func _build_light_incubator() -> void:
 	interactables["light_incubator"]["area"].get_child(0).visible = false
 	attach_label3d("light_incubator", "光照培养箱（25 ℃，光照）", Vector3(0, 0.62, 0.62), 40, Color(0.88, 1.0, 0.62))
 
+## 操作台上方的超净台玻璃罩：四周铝合金框 + 透明玻璃三面一顶
+func _build_hood() -> void:
+	var hw := 1.28            # 半宽
+	var z0 := -0.06           # 后沿
+	var z1 := 1.34            # 前沿
+	var y0 := 1.00            # 台面
+	var y1 := 2.18            # 罩顶
+	var mid_z := (z0 + z1) * 0.5
+	var depth := z1 - z0
+	var height := y1 - y0
+
+	# 不锈钢立柱与顶框
+	for sx in [-1.0, 1.0]:
+		for sz in [z0, z1]:
+			var post := add_static(mk_box(Vector3(0.055, height, 0.055)),
+				Vector3(sx * hw, y0 + height * 0.5, sz), Color.WHITE)
+			post.material_override = MAT_HOOD_FRAME
+	for sz in [z0, z1]:
+		var rail := add_static(mk_box(Vector3(hw * 2.0, 0.055, 0.055)),
+			Vector3(0.0, y1, sz), Color.WHITE)
+		rail.material_override = MAT_STEEL
+	for sx in [-1.0, 1.0]:
+		var rail := add_static(mk_box(Vector3(0.055, 0.055, depth)),
+			Vector3(sx * hw, y1, mid_z), Color.WHITE)
+		rail.material_override = MAT_HOOD_FRAME
+
+	# 罩内玻璃材质：比培养箱门稍微实一点，才看得出"罩住"
+	var hood_glass := StandardMaterial3D.new()
+	hood_glass.albedo_color = Color(0.80, 0.90, 0.97, 0.26)
+	hood_glass.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	hood_glass.roughness = 0.06
+	hood_glass.metallic = 0.0
+	hood_glass.metallic_specular = 1.0
+	hood_glass.rim_enabled = true
+	hood_glass.rim = 0.35
+
+	# 玻璃：正前、左右、顶面、后壁
+	var front := add_static(mk_box(Vector3(hw * 2.0 - 0.10, height - 0.06, 0.015)),
+		Vector3(0.0, y0 + height * 0.5, z1), Color.WHITE)
+	front.material_override = hood_glass
+	set_top_layer(front)
+	for sx in [-1.0, 1.0]:
+		var side := add_static(mk_box(Vector3(0.015, height - 0.06, depth - 0.06)),
+			Vector3(sx * hw, y0 + height * 0.5, mid_z), Color.WHITE)
+		side.material_override = hood_glass
+		set_top_layer(side)
+	var top := add_static(mk_box(Vector3(hw * 2.0 - 0.10, 0.015, depth - 0.06)),
+		Vector3(0.0, y1, mid_z), Color.WHITE)
+	top.material_override = hood_glass
+	set_top_layer(top)
+
 func _build_operation_table() -> void:
 	PropKit.spawn(self, BENCH_SCENE, Vector3(0.0, 0.0, 0.55), Vector3.ZERO, {}, Vector3(1.0, 1.0, 1.0))
+	_build_hood()
 
 	# 培养皿：真实模型 + 金黄色内容物
 	anther_node = create_interactable("anther_dish",
