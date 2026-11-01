@@ -101,7 +101,8 @@ func _style_tooltip(_obj_name: String, lbl: Label3D) -> void:
 func _tooltip_offset(obj_name: String) -> Vector3:
 	# 培养基牌子比别的宽，再抬高一点并往左让，避开右侧"无菌镊子"的固定标签
 	if obj_name == "medium_plate":
-		return Vector3(-0.32, 0.90, 0.0)
+		# 培养皿在最右边，红字单行很长，整体左移并抬高，免得顶出画面
+		return Vector3(-0.50, 0.95, 0.0)
 	return Vector3(0.0, 0.62, 0.0)
 
 func _dress_bottle(base: Vector3, radius: float, height: float,
@@ -274,7 +275,7 @@ func _build_medium() -> void:
 		Vector3(2.45, 1.10, 1.15), mk_cyl(0.52, 0.20),
 		Color(0.74, 0.88, 0.68, 0.0), Color(0.85, 1.0, 0.75), "愈伤组织诱导培养基")
 	interactables["medium_plate"]["area"].get_child(0).visible = false
-	var lbl_med := attach_label3d("medium_plate", "愈伤组织\n诱导培养基", Vector3(0, 0.62, 0), 36, Color(0.0, 0.85, 0.85))
+	var lbl_med := attach_label3d("medium_plate", "愈伤组织\n诱导培养基", Vector3(0.62, 0.06, 0), 36, Color(0.0, 0.85, 0.85))
 	if lbl_med: lbl_med.outline_size = 10; lbl_med.outline_modulate = Color(0.0, 0.30, 0.30, 1.0)
 
 	# 真实镊子：尾端圆环 + 两条扁簧，平放在台面上
