@@ -324,8 +324,7 @@ func _tweezers_dip(target: Vector3) -> void:
 	var dipped := Vector3(hover.x, hover.y - 0.14, hover.z - 0.10)
 	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_property(tweezer_model, "position", hover, 0.55)
-	tw.parallel().tween_property(tweezer_model, "rotation_degrees",
-		Vector3(0.0, 90.0, -12.0), 0.55)
+	tw.parallel().tween_property(tweezer_model, "rotation_degrees", TWZ_REST_ROT, 0.55)
 	tw.tween_property(tweezer_model, "position", dipped, 0.30)
 	tw.tween_property(tweezer_model, "position", hover, 0.30)
 
@@ -336,8 +335,7 @@ func _tweezers_transfer() -> void:
 	var down := Vector3(POS_MEDIUM.x, POS_MEDIUM.y + 0.10, POS_MEDIUM.z + TWZ_CARRY_DZ - 0.10)
 	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_property(tweezer_model, "position", above, 0.6)
-	tw.parallel().tween_property(tweezer_model, "rotation_degrees",
-		Vector3(0.0, 90.0, -20.0), 0.6)
+	tw.parallel().tween_property(tweezer_model, "rotation_degrees", TWZ_REST_ROT, 0.6)
 	tw.tween_property(tweezer_model, "position", down, 0.35)
 	tw.tween_callback(func():
 		if held_anther:
