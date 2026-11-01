@@ -23,7 +23,7 @@ const MAT_FLOOR := preload("res://materials/floor_epoxy.tres")
 const MAT_LABEL_PAPER := preload("res://materials/label_paper.tres")
 const DISH_SCENE := preload("res://assets/props/petri_dish.glb")
 const TWEEZERS_SCENE := preload("res://assets/props/tweezers.glb")
-const MAT_ANTHER := preload("res://materials/anther_picked.tres")
+const MAT_ANTHER := preload("res://materials/anther_picked_deep.tres")
 const MAT_STEEL_DARK := preload("res://materials/steel_dark.tres")
 const MAT_STEEL_BRIGHT := preload("res://materials/steel_bright.tres")
 
@@ -251,15 +251,13 @@ func _build_sterile_cabinet() -> void:
 		lbl_room.bold = true
 		lbl_room.outline_size = 8
 		lbl_room.outline_modulate = Color(0.02, 0.03, 0.07, 0.95)
-	var lbl_cab := add_label3d("超净工作台\n(无菌环境)", Vector3(4.6, 1.62, 2.2), 50, Color(1.0, 0.62, 0.80))
-	lbl_cab.outline_size = 10; lbl_cab.outline_modulate = Color(0.45, 0.10, 0.25, 1.0)
 
 func _build_flower_bud() -> void:
 	# 可见的花药球体（跟随动画移动）
 	bud_node = MeshInstance3D.new()
 	bud_node.mesh = mk_sphere(0.13)
 	var mat := StandardMaterial3D.new()
-	mat.albedo_color = Color(0.94, 0.90, 0.58)
+	mat.albedo_color = Color(0.78, 0.58, 0.10)
 	mat.no_depth_test = true; mat.render_priority = 2
 	bud_node.material_override = mat
 	bud_node.position = POS_BUD
@@ -268,8 +266,8 @@ func _build_flower_bud() -> void:
 	create_interactable("flower_bud",
 		Vector3(-4.5, 1.10, 0.3),
 		mk_sphere(0.15),
-		Color(0.94, 0.90, 0.58),
-		Color(1.0, 0.98, 0.30),
+		Color(0.78, 0.58, 0.10),
+		Color(1.0, 0.90, 0.25),
 		"花药（已低温预处理）")
 	for ch in interactables["flower_bud"]["area"].get_children():
 		if ch is Label3D and not ch.get_meta("static_label", false):
@@ -331,8 +329,8 @@ func _show_step(idx: int) -> void:
 		held_anther.visible = picked
 	# 镊子标签只在取花药和需要点镊子那一步显示，免得跟着满台跑
 	if twz_label:
-		twz_label.visible = idx < 2 or idx == 7
-		if idx == 7:
+		twz_label.visible = idx < 2 or idx == 6
+		if idx == 6:
 			twz_label.position = Vector3(6.85, 0.85, 0.45)
 		else:
 			twz_label.position = Vector3(0.02, -0.30, 0.55)
@@ -341,9 +339,8 @@ func _show_step(idx: int) -> void:
 		3: _tweezers_dip(POS_WATER1)
 		4: _tweezers_dip(POS_NACLO)
 		5: _tweezers_dip(POS_WATER2)
-		6: _tweezers_carry(POS_CABINET)
-		7: _tweezers_carry(POS_CABINET + Vector3(0.0, 0.30, 0.10))
-		8: _tweezers_transfer()
+		6: _tweezers_carry(POS_CABINET + Vector3(0.0, 0.30, 0.10))
+		7: _tweezers_transfer()
 		_: _tweezers_rest()
 
 func _tweezers_rest() -> void:
@@ -388,20 +385,19 @@ func _tweezers_transfer() -> void:
 	tw.tween_property(tweezer_model, "position", TWZ_REST_POS, 0.65)
 	tw.parallel().tween_property(tweezer_model, "rotation_degrees", TWZ_REST_ROT, 0.65)
 
-## 接种：在琼脂上留下几粒花药
+## 接种：在琼脂上放下一枚花药
 func _place_anthers() -> void:
-	for i in 4:
-		var bead := MeshInstance3D.new()
-		bead.mesh = mk_sphere(0.048)
-		bead.material_override = MAT_ANTHER
-		bead.position = Vector3(2.45 + (i % 2) * 0.22 - 0.11, 1.115, 1.15 + (i / 2) * 0.18 - 0.09)
-		add_child(bead)
+	var bead := MeshInstance3D.new()
+	bead.mesh = mk_sphere(0.062)
+	bead.material_override = MAT_ANTHER
+	bead.position = Vector3(POS_MEDIUM.x, 1.125, POS_MEDIUM.z)
+	add_child(bead)
 
 func _define_steps() -> void:
 	steps = [
 		{
 			"title": "📖  步骤说明：花药消毒与接种",
-			"body": "本步骤需要在超净台内按顺序进行操作：\n"
+			"body": "全部操作都在超净台内完成，按顺序进行：\n"
 				+ "① 取花药 → ② 75% 酒精消毒 → ③ 无菌水漂洗 → ④ 8% NaClO 消毒 → "
 				+ "⑤ 无菌水漂洗 → ⑥ 镊子剥取花药 → ⑦ 接种诱导愈伤组织培养基\n"
 				+ "每步消毒步骤都不可省略，否则杂菌污染会导致实验失败！",
@@ -452,17 +448,7 @@ func _define_steps() -> void:
 			"correct_message": "终漂完成，花药已完全无菌"
 		},
 		{
-			"title": "⑥ 进入超净工作台（无菌区）",
-			"body": "将消毒好的花药移入超净工作台中。\n"
-				+ "超净工作台通过 HEPA 过滤器提供无菌气流，防止空气中杂菌污染。\n"
-				+ "所有后续操作必须在无菌条件下进行！",
-			"click_to_advance": false,
-			"active_objects": ["sterile_cabinet"],
-			"correct_object": "sterile_cabinet",
-			"correct_message": "已进入无菌工作台"
-		},
-		{
-			"title": "⑦ 镊子剥取花药",
+			"title": "⑥ 镊子剥取花药",
 			"body": "用无菌镊子小心地从花药中剥离花药（小孢子囊）。\n"
 				+ "注意：剥取时不要损伤花药，也不要混入花丝等其他组织。\n"
 				+ "花药壁细胞是二倍体，会干扰单倍体筛选。",
@@ -472,7 +458,7 @@ func _define_steps() -> void:
 			"correct_message": "花药已成功剥离"
 		},
 		{
-			"title": "⑧ 接种到诱导培养基",
+			"title": "⑦ 接种到诱导培养基",
 			"body": "将剥离的花药水平放置在愈伤组织诱导培养基上。\n"
 				+ "花药应均匀分布，避免重叠，接种密度适当。\n"
 				+ "操作完成后立即封口，防止污染。",
@@ -480,7 +466,7 @@ func _define_steps() -> void:
 			"active_objects": ["medium_plate"],
 			"correct_object": "medium_plate",
 			"correct_message": "花药已接种到诱导培养基上！",
-			"completion_text": "花药消毒与接种完成！\n已按正确顺序完成：75% 酒精 → 无菌水 → 8% NaClO → 无菌水漂洗 → 超净工作台中剥取花药并接种。\n严格的消毒程序是实验成功的关键，任何环节疏忽都会导致杂菌污染。\n接下来进行最关键的步骤：愈伤组织诱导培养。"
+			"completion_text": "花药消毒与接种完成！\n已按正确顺序完成：75% 酒精 → 无菌水 → 8% NaClO → 无菌水漂洗 → 镊子剥取花药 → 接种到诱导培养基。\n严格的消毒程序是实验成功的关键，任何环节疏忽都会导致杂菌污染。\n接下来进行最关键的步骤：愈伤组织诱导培养。"
 		},
 	]
 
