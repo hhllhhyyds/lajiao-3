@@ -391,10 +391,9 @@ func _park_tooltips() -> void:
 		var dist := area.global_position.distance_to(camera.global_position)
 		for ch in area.get_children():
 			if ch is Label3D and not ch.get_meta("static_label", false):
-				# 两个柜子的固定标签已经顶到画面上缘，红字再往上会钻进顶部控制条，
-				# 所以柜子的红字挂在标签下方，培养皿仍挂在上方
-				var dy := 0.44 if nm == "anther_dish" else -0.30
-				ch.position = Vector3(float(_LABEL_DX[nm]), float(_LABEL_TOPS[nm]) + dy, 0.0)
+				# 三个红字统一挂在各自固定标签的正下方 0.30m
+				ch.position = Vector3(float(_LABEL_DX[nm]),
+					float(_LABEL_TOPS[nm]) - 0.30, 0.0)
 				ch.pixel_size = 0.0040 * dist / 5.6
 
 func _define_steps() -> void:
