@@ -138,24 +138,24 @@ func _spawn_incubator(pos: Vector3, dark: bool) -> void:
 	add_child(glow)
 
 func _build_dark_incubator() -> void:
-	_spawn_incubator(Vector3(-3.3, 0.0, -2.2), true)
+	_spawn_incubator(Vector3(-4.05, 0.0, -2.2), true)
 
 	create_interactable("dark_incubator",
-		Vector3(-3.3, 1.3, -2.0),
+		Vector3(-4.05, 1.3, -2.0),
 		mk_box(Vector3(1.9, 2.6, 1.6)),
 		Color(0, 0, 0, 0), Color(0.60, 0.60, 0.85), "高温暗培养箱")
 	interactables["dark_incubator"]["area"].get_child(0).visible = false
-	attach_label3d("dark_incubator", "高温暗培养箱（33–37 ℃，黑暗）", Vector3(0, 0.62, 0.62), 40, Color(0.82, 0.80, 1.0))
+	attach_label3d("dark_incubator", "高温暗培养箱（33–37 ℃，黑暗）", Vector3(0.60, 0.62, 0.62), 40, Color(0.82, 0.80, 1.0))
 
 func _build_light_incubator() -> void:
-	_spawn_incubator(Vector3(3.3, 0.0, -2.2), false)
+	_spawn_incubator(Vector3(4.05, 0.0, -2.2), false)
 
 	create_interactable("light_incubator",
-		Vector3(3.3, 1.3, -2.0),
+		Vector3(4.05, 1.3, -2.0),
 		mk_box(Vector3(1.9, 2.6, 1.6)),
 		Color(0, 0, 0, 0), Color(1.0, 1.0, 0.72), "光照培养箱")
 	interactables["light_incubator"]["area"].get_child(0).visible = false
-	attach_label3d("light_incubator", "光照培养箱（25 ℃，光照）", Vector3(0, 0.62, 0.62), 40, Color(0.88, 1.0, 0.62))
+	attach_label3d("light_incubator", "光照培养箱（25 ℃，光照）", Vector3(-0.60, 0.62, 0.62), 40, Color(0.88, 1.0, 0.62))
 
 ## 操作台上方的超净台玻璃罩：四周铝合金框 + 透明玻璃三面一顶
 func _build_hood() -> void:
@@ -352,6 +352,11 @@ const _LABEL_TOPS := {
 	"light_incubator": 0.62,
 	"anther_dish": 0.34,
 }
+const _LABEL_DX := {
+	"dark_incubator": 0.60,
+	"light_incubator": -0.60,
+	"anther_dish": 0.0,
+}
 
 func _park_tooltips() -> void:
 	for nm in _LABEL_TOPS:
@@ -362,7 +367,7 @@ func _park_tooltips() -> void:
 		var dist := area.global_position.distance_to(camera.global_position)
 		for ch in area.get_children():
 			if ch is Label3D and not ch.get_meta("static_label", false):
-				ch.position = Vector3(0.0, float(_LABEL_TOPS[nm]) + 0.52, 0.0)
+				ch.position = Vector3(float(_LABEL_DX[nm]), float(_LABEL_TOPS[nm]) + 0.52, 0.0)
 				ch.pixel_size = 0.0040 * dist / 5.6
 
 func _define_steps() -> void:
