@@ -25,6 +25,8 @@ const MAT_DISPLAY := preload("res://materials/display_black.tres")
 const MAT_HOOD_FRAME := preload("res://materials/steel_bright.tres")
 
 var anther_node: Area3D           # 培养皿交互节点（跟随移动）
+var anther_ball: MeshInstance3D   # 皿内的花药（暗培养阶段）
+var callus_root: Node3D           # 皿内的愈伤组织（光照阶段）
 
 # UI 控件
 var ui_temp_lbl: Label
@@ -234,7 +236,7 @@ func _build_operation_table() -> void:
 	anther_node.add_child(agar)
 
 	# 皿内那枚花药：淡黄色圆球，放在琼脂中央
-	var anther_ball := MeshInstance3D.new()
+	anther_ball = MeshInstance3D.new()
 	anther_ball.mesh = mk_sphere(0.080)
 	var bmat := StandardMaterial3D.new()
 	bmat.albedo_color = Color(0.95, 0.89, 0.58)
@@ -250,6 +252,32 @@ func _build_operation_table() -> void:
 	anther_hi.material_override = hmat
 	anther_hi.position = Vector3(-0.026, 0.132, -0.024)
 	anther_node.add_child(anther_hi)
+
+	# 愈伤组织：几块大小不一的球叠成的黄绿色不规则团块，暗培养结束后替换花药
+	callus_root = Node3D.new()
+	callus_root.position = Vector3(0.0, 0.088, 0.0)
+	callus_root.visible = false
+	anther_node.add_child(callus_root)
+	var callus_mat := StandardMaterial3D.new()
+	callus_mat.albedo_color = Color(0.72, 0.82, 0.34)
+	callus_mat.roughness = 0.62
+	var lumps := [
+		[Vector3(0.0, 0.0, 0.0), 0.092, Vector3(1.05, 0.80, 0.95)],
+		[Vector3(0.062, 0.028, 0.030), 0.052, Vector3(1.0, 0.9, 1.0)],
+		[Vector3(-0.058, 0.020, -0.038), 0.046, Vector3(1.0, 0.85, 1.05)],
+		[Vector3(0.012, 0.052, -0.058), 0.038, Vector3(1.0, 0.9, 1.0)],
+		[Vector3(-0.030, 0.038, 0.062), 0.034, Vector3(1.0, 0.9, 1.0)],
+	]
+	for l in lumps:
+		var mi := MeshInstance3D.new()
+		var sm := SphereMesh.new()
+		sm.radius = float(l[1]); sm.height = float(l[1]) * 2.0
+		sm.radial_segments = 9; sm.rings = 5
+		mi.mesh = sm
+		mi.material_override = callus_mat
+		mi.position = l[0]
+		mi.scale = l[2]
+		callus_root.add_child(mi)
 
 	# 台面上的花药小块（散落在皿内）
 	for i in 6:
@@ -451,6 +479,7 @@ func _on_interactable_clicked(obj_name: String) -> void:
 					flash_message("需要切换为【光照模式】才能进行光照培养！\n请点击右侧面板的光照切换按钮！", false)
 				else:
 					flash_message("愈伤组织已转入光照培养箱 ✓", true)
+					_swap_anther_to_callus()
 					_animate_dish_to(Vector3(4.05, 0.98, -2.2))
 					await get_tree().create_timer(1.0).timeout
 					advance_step()
@@ -458,6 +487,15 @@ func _on_interactable_clicked(obj_name: String) -> void:
 					timer_running = false; growth_timer = 0.0
 		_:
 			pass
+
+## 暗培养结束、转入光照箱时：皿里的花药换成黄绿色愈伤组织团块
+func _swap_anther_to_callus() -> void:
+	if anther_ball:
+		anther_ball.visible = false
+	if callus_root:
+		callus_root.visible = true
+	if _dish_label:
+		_dish_label.text = "长出愈伤组织的\n诱导愈伤组织培养皿（点击取出）"
 
 func _animate_dish_to(target: Vector3) -> void:
 	if not anther_node: return
