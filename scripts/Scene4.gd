@@ -330,7 +330,7 @@ func _build_control_panel() -> void:
 	ui_timer_lbl.add_theme_color_override("font_color", Color(0.75, 0.90, 0.78))
 	vb.add_child(ui_timer_lbl)
 
-	ui_wait_btn = Button.new(); ui_wait_btn.text = "⏩  加速模拟培养过程"
+	ui_wait_btn = Button.new(); ui_wait_btn.text = "⏩  点击此处加速模拟培养过程"
 	ui_wait_btn.custom_minimum_size = Vector2(0, 78)
 	_style_button(ui_wait_btn, Color(0.08, 0.32, 0.14))
 	ui_wait_btn.add_theme_font_size_override("font_size", 28)
@@ -439,7 +439,7 @@ func _on_interactable_clicked(obj_name: String) -> void:
 					flash_message("需要切换为【黑暗模式】才能进行热激培养！\n请点击右侧面板的光照切换按钮！", false)
 				else:
 					flash_message("培养皿已放入高温暗培养箱 ✓", true)
-					_animate_dish_to(Vector3(-3.3, 0.98, -2.2))
+					_animate_dish_to(Vector3(-4.05, 0.98, -2.2))
 					await get_tree().create_timer(1.0).timeout
 					advance_step()
 					ui_wait_btn.visible = true
@@ -451,7 +451,7 @@ func _on_interactable_clicked(obj_name: String) -> void:
 					flash_message("需要切换为【光照模式】才能进行光照培养！\n请点击右侧面板的光照切换按钮！", false)
 				else:
 					flash_message("愈伤组织已转入光照培养箱 ✓", true)
-					_animate_dish_to(Vector3(3.3, 0.98, -2.2))
+					_animate_dish_to(Vector3(4.05, 0.98, -2.2))
 					await get_tree().create_timer(1.0).timeout
 					advance_step()
 					ui_wait_btn.visible = true
