@@ -39,7 +39,7 @@ const POS_MEDIUM   := Vector3( 2.45, 1.16,  1.15)
 
 # 镊子的平放姿态（台面上）
 const TWZ_REST_POS := Vector3(2.45, 1.030, -0.75)
-const TWZ_REST_ROT := Vector3(0.0, 14.0, 74.0)
+const TWZ_REST_ROT := Vector3(0.0, 14.0, 0.0)
 
 var tweezer_model: Node3D
 var held_anther: MeshInstance3D
@@ -293,12 +293,6 @@ func _build_medium() -> void:
 		"tweezer_tip": MAT_STEEL_DARK,
 	}, Vector3(5.0, 5.0, 5.0))
 
-	# 器械杯：镊子竖插在里面，用前用后姿态才分得清
-	var cup := add_static(mk_cyl(0.075, 0.17), Vector3(2.45, 1.085, -0.75), Color.WHITE)
-	cup.material_override = MAT_STAINLESS
-	var cup_inner := add_static(mk_cyl(0.062, 0.15), Vector3(2.45, 1.10, -0.75), Color(0.20, 0.21, 0.23))
-	cup_inner.material_override = MAT_STEEL_DARK
-
 	# 夹在尖端的花药（剥取后才出现）
 	held_anther = MeshInstance3D.new()
 	held_anther.mesh = mk_sphere(0.0085)
@@ -310,7 +304,7 @@ func _build_medium() -> void:
 		Vector3(2.45, 1.08, -0.75), mk_box(Vector3(1.1, 0.25, 0.25)),
 		Color(0.72, 0.72, 0.75, 0.0), Color(0.90, 0.95, 1.0), "无菌镊子（剥取花药）")
 	interactables["tweezers"]["area"].get_child(0).visible = false
-	var lbl_twz := add_label3d("无菌镊子", Vector3(2.60, 1.94, -0.72), 44, Color(0.86, 0.87, 0.90))
+	var lbl_twz := add_label3d("无菌镊子", Vector3(2.45, 1.40, -0.75), 44, Color(0.86, 0.87, 0.90))
 	lbl_twz.outline_size = 10; lbl_twz.outline_modulate = Color(0.20, 0.20, 0.20, 1.0)
 
 ## 镊子的三个状态：台面平放 / 抬起夹住花药 / 移到培养皿放下
