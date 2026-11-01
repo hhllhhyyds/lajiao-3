@@ -216,7 +216,7 @@ func _build_operation_table() -> void:
 	anther_node = create_interactable("anther_dish",
 		Vector3(0.0, 1.06, 0.55),
 		mk_cyl(0.26, 0.06),
-		Color(0.85, 0.70, 0.18), Color(1.0, 0.90, 0.25), "诱导愈伤组织培养皿")
+		Color(0.85, 0.70, 0.18), Color(1.0, 0.90, 0.25), "放置了花药的诱导愈伤组织培养皿")
 	anther_node.get_child(0).visible = false
 
 	PropKit.spawn(anther_node, DISH_SCENE, Vector3(0.0, -0.02, 0.0), Vector3.ZERO, {
@@ -233,6 +233,24 @@ func _build_operation_table() -> void:
 	agar.position = Vector3(0.0, 0.012, 0.0)
 	anther_node.add_child(agar)
 
+	# 皿内那枚花药：淡黄色圆球，放在琼脂中央
+	var anther_ball := MeshInstance3D.new()
+	anther_ball.mesh = mk_sphere(0.058)
+	var bmat := StandardMaterial3D.new()
+	bmat.albedo_color = Color(0.95, 0.89, 0.58)
+	bmat.roughness = 0.42
+	anther_ball.material_override = bmat
+	anther_ball.position = Vector3(0.0, 0.062, 0.0)
+	anther_node.add_child(anther_ball)
+	var anther_hi := MeshInstance3D.new()
+	anther_hi.mesh = mk_sphere(0.020)
+	var hmat := StandardMaterial3D.new()
+	hmat.albedo_color = Color(1.0, 0.97, 0.80)
+	hmat.roughness = 0.30
+	anther_hi.material_override = hmat
+	anther_hi.position = Vector3(-0.020, 0.098, -0.018)
+	anther_node.add_child(anther_hi)
+
 	# 台面上的花药小块（散落在皿内）
 	for i in 6:
 		var ang := i * 1.05
@@ -245,7 +263,7 @@ func _build_operation_table() -> void:
 		fleck.position = Vector3(cos(ang) * 0.13, 0.028, sin(ang) * 0.13)
 		anther_node.add_child(fleck)
 
-	_dish_label = attach_label3d("anther_dish", "诱导愈伤组织培养皿\n（点击取出）",
+	_dish_label = attach_label3d("anther_dish", "放置了花药的\n诱导愈伤组织培养皿（点击取出）",
 		Vector3(0, 0.34, 0), 42, Color(1.0, 0.95, 0.60))
 
 func _build_control_panel() -> void:
