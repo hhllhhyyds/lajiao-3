@@ -485,6 +485,14 @@ func _show_step(idx: int) -> void:
 	if idx == 2 or idx == 4:
 		growth_timer = 0.0
 		timer_running = true
+	# 进光照培养箱时，愈伤组织明显长大一档
+	if idx == 4 and callus_root:
+		_set_callus_scale(1.45)
+
+func _set_callus_scale(sc: float) -> void:
+	if callus_root == null:
+		return
+	callus_root.scale = Vector3(sc, 1.0 + (sc - 1.0) * 0.7, sc)
 
 ## 暗培养结束、转入光照箱时：皿里的花药换成黄绿色愈伤组织团块
 func _swap_anther_to_callus() -> void:
@@ -567,8 +575,7 @@ func _process(delta: float) -> void:
 	elif current_step_index == 4:
 		ui_timer_lbl.text = "光照培养：%.1f 天" % _days_shown
 		if callus_root:
-			var sc := minf(callus_root.scale.x + delta * 0.25, 1.9)
-			callus_root.scale = Vector3(sc, 1.0 + (sc - 1.0) * 0.7, sc)
+			_set_callus_scale(minf(callus_root.scale.x + delta * 0.28, 2.0))
 		if growth_timer >= 10.0:
 			timer_running = false
 			flash_message("愈伤组织充分增殖，可进入下一关！", true)
