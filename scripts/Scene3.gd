@@ -239,9 +239,11 @@ func _build_sterile_cabinet() -> void:
 		Vector3(cx, 2.0, cz), mk_box(Vector3(11.2, 4.6, d - 0.4)),
 		Color(0.62, 0.78, 0.92, 0.0), Color(0.75, 0.92, 1.0), "超净工作台（无菌区）")
 	interactables["sterile_cabinet"]["area"].get_child(0).visible = false
-	var lbl_room := add_label3d("实验室超净台（无菌环境）内室", Vector3(0.30, 3.50, 2.6), 46,
-		Color(0.72, 0.95, 0.95))
-	if lbl_room: lbl_room.outline_size = 6
+	var lbl_room := add_label3d("实验室超净台（无菌环境）内室", Vector3(0.30, 3.50, 2.6), 60,
+		Color(0.04, 0.11, 0.42))
+	# 灰墙够浅，深蓝字不用描边也清楚；加了描边反而把字形衬成浅蓝
+	if lbl_room:
+		lbl_room.outline_size = 0
 	var lbl_cab := add_label3d("超净工作台\n(无菌环境)", Vector3(4.6, 1.62, 2.2), 50, Color(1.0, 0.62, 0.80))
 	lbl_cab.outline_size = 10; lbl_cab.outline_modulate = Color(0.45, 0.10, 0.25, 1.0)
 
