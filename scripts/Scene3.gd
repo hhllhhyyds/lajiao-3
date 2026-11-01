@@ -22,6 +22,9 @@ const MAT_FLOOR := preload("res://materials/floor_epoxy.tres")
 const MAT_LABEL_PAPER := preload("res://materials/label_paper.tres")
 const BEAKER_SCENE := preload("res://assets/props/beaker.glb")
 const MAT_GLASS_BORO := preload("res://materials/glass_borosilicate.tres")
+const MAT_AGAR := preload("res://materials/agar_base.tres")
+const MAT_AGAR_TOP := preload("res://materials/agar.tres")
+const MAT_DISH_SHELL := preload("res://materials/dish_shell.tres")
 const DISH_SCENE := preload("res://assets/props/petri_dish.glb")
 const TWEEZERS_SCENE := preload("res://assets/props/tweezers.glb")
 const MAT_ANTHER := preload("res://materials/anther_pale.tres")
@@ -260,16 +263,33 @@ func _build_flower_bud() -> void:
 	lbl_bud.outline_size = 8; lbl_bud.outline_modulate = Color(0.1, 0.25, 0.05, 0.9)
 
 func _build_medium() -> void:
-	PropKit.spawn(self, DISH_SCENE, Vector3(2.45, 0.99, 1.15), Vector3.ZERO, {
-		"petri_dish_lid": MAT_CLEAR_BOTTLE,
+	# 培养皿：透明玻璃皿身 + 有纹理的琼脂培养基，表面带一层薄薄的凝结水光
+	var dish := PropKit.spawn(self, DISH_SCENE, Vector3(2.45, 0.99, 1.15), Vector3.ZERO, {
+		"petri_dish_lid": MAT_GLASS_BORO,
 		"petri_dish_base": MAT_CLEAR_BOTTLE,
-	}, Vector3(5.6, 5.6, 5.6))
-	set_top_layer(add_static(mk_cyl(0.26, 0.06), Vector3(2.45, 1.04, 1.15), Color(0.76, 0.88, 0.70)))
+	}, Vector3(6.4, 6.4, 6.4))
+	if dish != null:
+		PropKit.contact_shadow(dish, 0.34)
+	var agar_mat := StandardMaterial3D.new()
+	agar_mat.albedo_color = Color(0.62, 0.78, 0.54)
+	agar_mat.roughness = 0.55
+	var agar := add_static(mk_cyl(0.300, 0.075), Vector3(2.45, 1.052, 1.15), Color.WHITE)
+	agar.material_override = agar_mat
+	set_top_layer(agar)
+	# 琼脂表面：薄薄一层，带点湿润的高光
+	var skin_mat := StandardMaterial3D.new()
+	skin_mat.albedo_color = Color(0.74, 0.88, 0.66)
+	skin_mat.roughness = 0.18
+	skin_mat.metallic = 0.0
+	var agar_skin := add_static(mk_cyl(0.294, 0.012), Vector3(2.45, 1.090, 1.15), Color.WHITE)
+	agar_skin.material_override = skin_mat
+	set_top_layer(agar_skin)
 	create_interactable("medium_plate",
 		Vector3(2.45, 1.10, 1.15), mk_cyl(0.52, 0.20),
 		Color(0.74, 0.88, 0.68, 0.0), Color(0.85, 1.0, 0.75), "愈伤组织诱导培养基")
 	interactables["medium_plate"]["area"].get_child(0).visible = false
-	var lbl_med := attach_label3d("medium_plate", "愈伤组织\n诱导培养基", Vector3(0.62, 0.06, 0), 36, Color(0.0, 0.85, 0.85))
+	var lbl_med := attach_label3d("medium_plate", "愈伤组织\n诱导培养基", Vector3(0.52, 0.24, 0), 52,
+		Color(0.0, 0.85, 0.85))
 	if lbl_med: lbl_med.outline_size = 10; lbl_med.outline_modulate = Color(0.0, 0.30, 0.30, 1.0)
 
 	# 真实镊子：尾端圆环 + 两条扁簧，平放在台面上
