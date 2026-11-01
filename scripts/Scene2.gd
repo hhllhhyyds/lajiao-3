@@ -148,6 +148,11 @@ func _anther_specimen(nm: String, local_pos: Vector3, size: float, color: Color,
 	create_interactable(nm, _flower_xf * local_pos, mk_sphere(size), color, hover, tooltip)
 	var area: Area3D = interactables[nm]["area"]
 	area.get_child(0).visible = false
+	# 悬停时的红色名称牌原来浮在花药正上方，正好压在花冠上；
+	# 挪到花冠下方的空处
+	for ch in area.get_children():
+		if ch is Label3D:
+			ch.position = Vector3(0.0, -0.82, 0.0)
 	PropKit.spawn(area, ANTHER_SCENE, Vector3(0.0, 0.05, 0.0), Vector3(tilt, 0.0, 0.0), {
 		"anther_body": interactables[nm]["mat"],
 		"anther_filament": MAT_FILAMENT,
