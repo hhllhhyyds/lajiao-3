@@ -140,11 +140,9 @@ func _build_bottles() -> void:
 		"bottle_cap_ridge": MAT_CAP,
 	}, Vector3(3.8, 3.8, 3.8))
 
-	PropKit.spawn(self, MEDIA_SCENE, Vector3(-2.30, 0.99, -0.30), Vector3.ZERO, {
-		"media_body": MAT_CLEAR_BOTTLE,
-		"media_cap": MAT_CAP_BLUE,
-		"media_cap_ridge": MAT_CAP_BLUE,
-	}, Vector3(4.4, 4.4, 4.4))
+	PropKit.spawn(self, FLASK_SCENE, Vector3(-2.30, 0.99, -0.30), Vector3.ZERO, {
+		"flask_body": MAT_CLEAR_BOTTLE,
+	}, Vector3(3.6, 3.6, 3.6))
 
 	PropKit.spawn(self, MEDIA_SCENE, Vector3(-0.80, 0.99, -0.30), Vector3.ZERO, {
 		"media_body": MAT_WHITE_BOTTLE,
@@ -152,19 +150,17 @@ func _build_bottles() -> void:
 		"media_cap_ridge": MAT_CAP,
 	}, Vector3(4.4, 4.4, 4.4))
 
-	PropKit.spawn(self, MEDIA_SCENE, Vector3(0.70, 0.99, -0.30), Vector3.ZERO, {
-		"media_body": MAT_CLEAR_BOTTLE,
-		"media_cap": MAT_CAP_BLUE,
-		"media_cap_ridge": MAT_CAP_BLUE,
-	}, Vector3(4.4, 4.4, 4.4))
+	PropKit.spawn(self, FLASK_SCENE, Vector3(0.70, 0.99, -0.30), Vector3.ZERO, {
+		"flask_body": MAT_CLEAR_BOTTLE,
+	}, Vector3(3.6, 3.6, 3.6))
 
 	# 标签纸 + 液面
 	_dress_bottle(Vector3(-3.80, 0.99, -0.30), 0.128, 0.70, "75% 乙醇")
-	_dress_bottle(Vector3(-2.30, 0.99, -0.30), 0.186, 0.48, "无菌水",
+	_dress_bottle(Vector3(-2.30, 0.99, -0.30), 0.132, 0.18, "无菌水",
 		Color(0.62, 0.80, 0.92, 0.55))
 	_dress_bottle(Vector3(-0.80, 0.99, -0.30), 0.186, 0.48, "8% NaClO",
 		Color(0.86, 0.90, 0.86, 0.60))
-	_dress_bottle(Vector3(0.70, 0.99, -0.30), 0.186, 0.48, "无菌水",
+	_dress_bottle(Vector3(0.70, 0.99, -0.30), 0.132, 0.18, "无菌水",
 		Color(0.62, 0.80, 0.92, 0.55))
 
 	create_interactable("bottle_alcohol",
