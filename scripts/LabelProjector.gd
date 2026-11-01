@@ -101,6 +101,24 @@ class TagLabel extends RefCounted:
 				LabelProjector._font_for(value))
 			_label.reset_size()
 
+	## 直接给像素字号，绕开 _font_for 的上下限（个别标题用）
+	var font_px: int:
+		set(value):
+			_label.add_theme_font_size_override("font_size", value)
+			_label.reset_size()
+
+	## 加粗：用 FontVariation 的 embolden，不依赖额外字体文件
+	var bold: bool:
+		set(value):
+			if value:
+				var fv := FontVariation.new()
+				fv.base_font = _label.get_theme_font("font")
+				fv.variation_embolden = 1.1
+				_label.add_theme_font_override("font", fv)
+			else:
+				_label.remove_theme_font_override("font")
+			_label.reset_size()
+
 	var outline_size: int:
 		set(value):
 			_label.add_theme_constant_override("outline_size", value)
