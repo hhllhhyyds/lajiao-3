@@ -89,7 +89,7 @@ func _build_pepper_plant() -> void:
 
 	# 一朵展示花：五种发育程度的花药都长在这一朵花里
 	_build_display_flower()
-	add_label3d("←花瓣", FLOWER_CENTER + Vector3(0.66, 0.06, -0.18), 40, Color.WHITE)
+	add_label3d("←花瓣", FLOWER_CENTER + Vector3(0.98, 0.02, -0.12), 40, Color.WHITE)
 
 	# 五枚花药按花心里的一小簇摆放（坐标是花朵平面内的局部坐标）
 	_anther_specimen("bud_correct", Vector3(-0.13, 0.02, -0.05), 0.15,
@@ -105,12 +105,12 @@ func _build_pepper_plant() -> void:
 
 	# 花药区域说明标签
 	var bud_area_lbl := add_label3d("这朵花里有五种发育程度的花药",
-		FLOWER_CENTER + Vector3(-1.02, 0.34, 0.10), 46, Color.WHITE)
+		FLOWER_CENTER + Vector3(-0.34, -1.02, 0.04), 46, Color.WHITE)
 	bud_area_lbl.outline_size = 5
 	bud_area_lbl.outline_modulate = Color(0.2, 0.1, 0.0, 0.8)
 
 	# 标签
-	var plant_lbl := add_label3d("处于盛花状态的辣椒植株", Vector3(-1.0, 2.62, 0), 50, Color(0.8, 1.0, 0.8))
+	var plant_lbl := add_label3d("处于盛花状态的辣椒植株", Vector3(-1.0, 2.86, 0), 50, Color(0.8, 1.0, 0.8))
 	plant_lbl.outline_size = 6
 	plant_lbl.outline_modulate = Color(0.1, 0.3, 0.1, 0.9)
 
