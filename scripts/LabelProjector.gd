@@ -13,7 +13,7 @@ extends Node
 ## 3D 标签字号（40~50 那套）到 2D 像素字号的粗略映射
 const FONT_SCALE := 0.50
 const FONT_MIN := 15
-const FONT_MAX := 25
+const FONT_MAX := 27
 
 var camera: Camera3D
 var canvas: CanvasLayer
