@@ -66,7 +66,6 @@ func _setup_scene() -> void:
 	_build_sterile_cabinet()
 	_build_flower_bud()
 	_build_medium()
-	_park_tooltips()
 
 func _build_lab_bench() -> void:
 	# 台面：深色环氧树脂板，压在不锈钢框上；地面铺环氧地坪
@@ -102,19 +101,12 @@ func _style_tooltip(_obj_name: String, lbl: Label3D) -> void:
 	lbl.outline_size = 10
 	lbl.modulate = Color(1.0, 0.26, 0.18)
 
-## 红色名称牌统一停在台面前下方的空处：那里既没有器物也没有固定标签，
-## 不管悬停哪个对象都不会挡住东西
-const TOOLTIP_ANCHOR := Vector3(0.20, 1.40, 3.00)
-
-func _tooltip_offset(_obj_name: String) -> Vector3:
-	return Vector3.ZERO
-
-func _park_tooltips() -> void:
-	for nm in interactables:
-		var area: Area3D = interactables[nm]["area"]
-		for ch in area.get_children():
-			if ch is Label3D and not ch.get_meta("static_label", false):
-				ch.position = TOOLTIP_ANCHOR - area.position
+## 红色名称牌挂在物体正上方，抬到固定标签之上，两者不打架
+func _tooltip_offset(obj_name: String) -> Vector3:
+	# 培养皿在最右边，单行红字很长，左移一点免得顶出画面
+	if obj_name == "medium_plate":
+		return Vector3(-0.50, 0.95, 0.0)
+	return Vector3(0.0, 0.62, 0.0)
 
 func _dress_bottle(base: Vector3, radius: float, height: float,
 		text: String, liquid: Color = Color(0, 0, 0, 0)) -> void:
