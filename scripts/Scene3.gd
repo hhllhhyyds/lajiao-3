@@ -20,6 +20,8 @@ const MAT_BENCH := preload("res://materials/epoxy_bench.tres")
 const MAT_TILE := preload("res://materials/tile_wall.tres")
 const MAT_FLOOR := preload("res://materials/floor_epoxy.tres")
 const MAT_LABEL_PAPER := preload("res://materials/label_paper.tres")
+const BEAKER_SCENE := preload("res://assets/props/beaker.glb")
+const MAT_GLASS_BORO := preload("res://materials/glass_borosilicate.tres")
 const DISH_SCENE := preload("res://assets/props/petri_dish.glb")
 const TWEEZERS_SCENE := preload("res://assets/props/tweezers.glb")
 const MAT_ANTHER := preload("res://materials/anther_pale.tres")
@@ -144,11 +146,20 @@ func _build_bottles() -> void:
 		"flask_body": MAT_CLEAR_BOTTLE,
 	}, Vector3(3.6, 3.6, 3.6))
 
-	PropKit.spawn(self, MEDIA_SCENE, Vector3(-0.80, 0.99, -0.30), Vector3.ZERO, {
-		"media_body": MAT_WHITE_BOTTLE,
-		"media_cap": MAT_CAP,
-		"media_cap_ridge": MAT_CAP,
+	PropKit.spawn(self, BEAKER_SCENE, Vector3(-0.80, 0.99, -0.30), Vector3.ZERO, {
+		"beaker_body": MAT_GLASS_BORO,
 	}, Vector3(4.4, 4.4, 4.4))
+	# 烧杯里的次氯酸钠溶液：淡黄绿色，略透明
+	var naclo_liq := MeshInstance3D.new()
+	naclo_liq.mesh = mk_cyl(0.125, 0.30)
+	var naclo_mat := StandardMaterial3D.new()
+	naclo_mat.albedo_color = Color(0.70, 0.85, 0.52, 0.92)
+	naclo_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	naclo_mat.roughness = 0.12
+	naclo_mat.metallic = 0.0
+	naclo_liq.material_override = naclo_mat
+	naclo_liq.position = Vector3(-0.80, 1.14, -0.30)
+	add_child(naclo_liq)
 
 	PropKit.spawn(self, FLASK_SCENE, Vector3(0.70, 0.99, -0.30), Vector3.ZERO, {
 		"flask_body": MAT_CLEAR_BOTTLE,
@@ -158,8 +169,6 @@ func _build_bottles() -> void:
 	_dress_bottle(Vector3(-3.80, 0.99, -0.30), 0.128, 0.70, "75% 乙醇")
 	_dress_bottle(Vector3(-2.30, 0.99, -0.30), 0.132, 0.18, "无菌水",
 		Color(0.62, 0.80, 0.92, 0.55))
-	_dress_bottle(Vector3(-0.80, 0.99, -0.30), 0.186, 0.48, "8% NaClO",
-		Color(0.86, 0.90, 0.86, 0.60))
 	_dress_bottle(Vector3(0.70, 0.99, -0.30), 0.132, 0.18, "无菌水",
 		Color(0.62, 0.80, 0.92, 0.55))
 
