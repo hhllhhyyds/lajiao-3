@@ -21,6 +21,12 @@ const MAT_PETAL := preload("res://materials/petal.tres")
 const MAT_CALYX := preload("res://materials/calyx.tres")
 const MAT_FILAMENT := preload("res://materials/anther_filament.tres")
 const MAT_PICKED := preload("res://materials/anther_picked.tres")
+
+# 展示花：位置、朝向、半径（花心里放五枚花药）
+const FLOWER_CENTER := Vector3(-1.62, 0.98, 1.62)
+const FLOWER_EULER := Vector3(412.0, -18.0, 0.0)
+const FLOWER_RADIUS := 0.62
+var _flower_xf: Transform3D
 const MAT_CASE := preload("res://materials/fridge_case.tres")
 const MAT_INNER := preload("res://materials/fridge_inner.tres")
 const MAT_STEEL := preload("res://materials/stainless.tres")
@@ -81,22 +87,25 @@ func _build_pepper_plant() -> void:
 		"pepper_plant_fl": MAT_PETAL,
 	}, Vector3(1.55, 1.55, 1.55))
 
-	add_label3d("←花瓣", Vector3(-0.30, 1.70, 0.55), 40, Color.WHITE)
+	# 一朵展示花：五种发育程度的花药都长在这一朵花里
+	_build_display_flower()
+	add_label3d("←花瓣", FLOWER_CENTER + Vector3(0.78, 0.10, -0.20), 40, Color.WHITE)
 
-	# 五个发育期的花药标本（球体只做碰撞，外观用真实花药模型）
-	_anther_specimen("bud_correct", Vector3(-1.54, 1.90, 0.26), 0.22,
-		Color(1.0, 0.92, 0.05), Color(1.0, 1.0, 0.40), "单核靠边期花药", 21.0, 18.0)
-	_anther_specimen("bud_early", Vector3(-1.98, 1.68, 0.02), 0.17,
-		Color(0.60, 0.90, 0.62), Color(0.75, 1.0, 0.76), "花粉母细胞期花药", 18.0, -32.0)
-	_anther_specimen("bud_late", Vector3(-0.62, 1.98, -0.40), 0.28,
-		Color(0.75, 0.55, 0.05), Color(0.90, 0.70, 0.15), "二核期花药", 26.0, 42.0)
-	_anther_specimen("bud_uninuclear_early", Vector3(-0.44, 1.78, 0.74), 0.17,
-		Color(0.68, 0.88, 0.22), Color(0.80, 1.0, 0.35), "单核早期花药", 18.0, 8.0)
-	_anther_specimen("bud_mature", Vector3(-1.28, 1.60, 0.88), 0.17,
-		Color(0.80, 0.65, 0.90), Color(0.92, 0.80, 1.0), "成熟花粉期花药", 18.0, -14.0)
+	# 五枚花药按花心里的一小簇摆放（坐标是花朵平面内的局部坐标）
+	_anther_specimen("bud_correct", Vector3(-0.16, 0.02, -0.06), 0.16,
+		Color(1.0, 0.92, 0.05), Color(1.0, 1.0, 0.40), "单核靠边期花药", 20.0, 14.0)
+	_anther_specimen("bud_early", Vector3(0.14, 0.03, -0.13), 0.13,
+		Color(0.60, 0.90, 0.62), Color(0.75, 1.0, 0.76), "花粉母细胞期花药", 16.0, -18.0)
+	_anther_specimen("bud_late", Vector3(-0.02, 0.05, 0.15), 0.19,
+		Color(0.75, 0.55, 0.05), Color(0.90, 0.70, 0.15), "二核期花药", 25.0, 24.0)
+	_anther_specimen("bud_uninuclear_early", Vector3(0.20, 0.03, 0.12), 0.13,
+		Color(0.68, 0.88, 0.22), Color(0.80, 1.0, 0.35), "单核早期花药", 16.0, 6.0)
+	_anther_specimen("bud_mature", Vector3(-0.24, 0.03, 0.16), 0.13,
+		Color(0.80, 0.65, 0.90), Color(0.92, 0.80, 1.0), "成熟花粉期花药", 16.0, -10.0)
 
 	# 花药区域说明标签
-	var bud_area_lbl := add_label3d("处于不同发育时期的花药→", Vector3(-2.95, 2.05, 0.10), 46, Color.WHITE)
+	var bud_area_lbl := add_label3d("这朵花里有五种发育程度的花药",
+		FLOWER_CENTER + Vector3(0.02, 0.86, 0.06), 46, Color.WHITE)
 	bud_area_lbl.outline_size = 5
 	bud_area_lbl.outline_modulate = Color(0.2, 0.1, 0.0, 0.8)
 
@@ -105,10 +114,43 @@ func _build_pepper_plant() -> void:
 	plant_lbl.outline_size = 6
 	plant_lbl.outline_modulate = Color(0.1, 0.3, 0.1, 0.9)
 
-## 花药标本：球形碰撞体 + 真实花药外观，材质与交互体共用以便高亮
-func _anther_specimen(nm: String, pos: Vector3, size: float, color: Color,
+## 展示花：花瓣平铺成盘，花心留空，花药立在中间不会被遮挡
+func _build_display_flower() -> void:
+	_flower_xf = Transform3D(
+		Basis.from_euler(Vector3(deg_to_rad(FLOWER_EULER.x), deg_to_rad(FLOWER_EULER.y), 0.0)),
+		FLOWER_CENTER)
+
+	var flower := Node3D.new()
+	flower.position = FLOWER_CENTER
+	flower.rotation_degrees = FLOWER_EULER
+	add_child(flower)
+
+	# 花托
+	var calyx := MeshInstance3D.new()
+	calyx.mesh = mk_cyl(FLOWER_RADIUS * 0.34, FLOWER_RADIUS * 0.05)
+	calyx.material_override = MAT_CALYX
+	calyx.position = Vector3(0.0, -0.055, 0.0)
+	flower.add_child(calyx)
+
+	# 六枚花瓣：基本平铺，只有很轻的上翘，保证从任何角度都不遮花心
+	for i in 6:
+		var pivot := Node3D.new()
+		pivot.rotation_degrees = Vector3(0.0, i * 60.0, 0.0)
+		var petal := MeshInstance3D.new()
+		petal.mesh = mk_sphere(0.5)
+		petal.scale = Vector3(FLOWER_RADIUS * 0.86, FLOWER_RADIUS * 0.10,
+			FLOWER_RADIUS * 1.00)
+		petal.material_override = MAT_PETAL
+		petal.position = Vector3(0.0, 0.004, FLOWER_RADIUS * 0.70)
+		petal.rotation_degrees = Vector3(6.0, 0.0, 0.0)
+		pivot.add_child(petal)
+		flower.add_child(pivot)
+
+## 花药标本：球形碰撞体 + 真实花药外观，材质与交互体共用以便高亮。
+## pos 是"花朵平面内"的局部坐标，花药统一竖直立在花心里
+func _anther_specimen(nm: String, local_pos: Vector3, size: float, color: Color,
 		hover: Color, tooltip: String, scl: float, tilt: float = 20.0) -> void:
-	create_interactable(nm, pos, mk_sphere(size), color, hover, tooltip)
+	create_interactable(nm, _flower_xf * local_pos, mk_sphere(size), color, hover, tooltip)
 	var area: Area3D = interactables[nm]["area"]
 	area.get_child(0).visible = false
 	PropKit.spawn(area, ANTHER_SCENE, Vector3(0.0, 0.05, 0.0), Vector3(tilt, 0.0, 0.0), {
@@ -248,7 +290,7 @@ func _define_steps() -> void:
 		},
 		{
 			"title": "🌸  操作提示：选取适合进行花药离体培养的花药，可通过花药颜色判断花药内部生殖细胞处于何种发育时期。",
-			"body": "盛花状态下的辣椒植株上有多个发育阶段不同的花药————花粉母细胞期花药呈淡绿色，花药中存在处于减数分裂Ⅰ前期的花粉母细胞（2n=24），尚未形成小孢子细胞（精子，n=12）；单核早期花药呈浅黄绿色，减数分裂已完成，产生了小孢子（n=12），但此时期小孢子的脱分化能力较弱；单核靠边期花药呈鲜黄色，此时期小孢子的脱分化能力很强；二核期花药呈深黄色，此时期小孢子细胞完成了一次有丝分裂趋向更加成熟的发育状态，但脱分化能力极低；成熟花粉期花药呈现黄紫色，小孢子细胞成熟度达到最高，具备受精能力，但细胞基本已完全失去脱分化能力。请结合提示信息仔细观察并选取合适的花药。",
+			"body": "盛花状态下的辣椒，同一朵花里就能看到发育阶段不同的花药————花粉母细胞期花药呈淡绿色，花药中存在处于减数分裂Ⅰ前期的花粉母细胞（2n=24），尚未形成小孢子细胞（精子，n=12）；单核早期花药呈浅黄绿色，减数分裂已完成，产生了小孢子（n=12），但此时期小孢子的脱分化能力较弱；单核靠边期花药呈鲜黄色，此时期小孢子的脱分化能力很强；二核期花药呈深黄色，此时期小孢子细胞完成了一次有丝分裂趋向更加成熟的发育状态，但脱分化能力极低；成熟花粉期花药呈现黄紫色，小孢子细胞成熟度达到最高，具备受精能力，但细胞基本已完全失去脱分化能力。请结合提示信息仔细观察并选取合适的花药。",
 			"click_to_advance": false,
 			"active_objects": ["bud_correct", "bud_early", "bud_late", "bud_uninuclear_early", "bud_mature"],
 			"correct_object": "bud_correct",

@@ -196,14 +196,14 @@ def _flower(name: str, calyx_name: str, base: Vector, ang: float,
             petal_mat, calyx_mat):
     """单朵花：绿色花萼 + 5 枚白色花瓣（向外翻卷）。"""
     parts = []
-    calyx = blade(calyx_name, 0.018, 0.020, calyx_mat,
+    calyx = blade(calyx_name, 0.024, 0.026, calyx_mat,
                   seg_u=6, seg_v=6, droop=0.0, cup=0.5, pointed=1.0)
     place(calyx, base, rot_z=ang, rot_x=math.radians(90.0))
     parts.append(calyx)
 
     for p in range(5):
         pa = ang + p * (2.0 * math.pi / 5.0)
-        petal = blade(f"{name}_petal_{p}", 0.028, 0.020, petal_mat,
+        petal = blade(f"{name}_petal_{p}", 0.042, 0.030, petal_mat,
                       seg_u=8, seg_v=6, droop=-0.18, cup=0.45, pointed=1.0,
                       curl=0.2)
         place(petal, base + Vector((0.0, 0.0, 0.004)), rot_z=pa,

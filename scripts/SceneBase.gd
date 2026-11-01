@@ -504,6 +504,15 @@ func flash_message(msg: String, good: bool = true, dur: float = 2.2, font_size: 
 	_style_label(lbl, font_size, fg_color)
 	bg.add_child(lbl)
 
+	# 底板按文字实际宽度撑开：字号放大后，"配方不对！请仔细对比……" 这种
+	# 长句会直接顶出固定 440px 的框
+	var f := lbl.get_theme_font("font")
+	var fs := int(lbl.get_theme_font_size("font_size"))
+	var text_w := f.get_string_size(lbl.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
+	var box_w := maxf(half_w * 2.0, text_w + 56.0)
+	bg.offset_left = -box_w * 0.5
+	bg.offset_right = box_w * 0.5
+
 	var tw := create_tween()
 	tw.tween_interval(dur)
 	tw.tween_callback(bg.queue_free)
