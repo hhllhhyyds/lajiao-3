@@ -1,0 +1,55 @@
+name: Export Web & Deploy
+
+# 打 tag（v1.0.0 这种）时构建并发布；平时也可手动触发
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: 4.7.2
+  GODOT_CHANNEL: stable
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 下载 Godot 与导出模板
+        run: |
+          set -e
+          BASE="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-${GODOT_CHANNEL}"
+          wget -q "${BASE}/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_linux.x86_64.zip"
+          unzip -q "Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_linux.x86_64.zip"
+          chmod +x "Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_linux.x86_64"
+
+          TPL_DIR="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_CHANNEL}"
+          mkdir -p "$TPL_DIR"
+          wget -q "${BASE}/Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_export_templates.tpz"
+          unzip -q "Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_export_templates.tpz" -d /tmp/tpl
+          mv /tmp/tpl/templates/* "$TPL_DIR"/
+          ls "$TPL_DIR" | grep -E 'web_(nothreads_)?release' || true
+
+      - name: 导入资源（生成 .godot 缓存）
+        run: |
+          ./Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_linux.x86_64 --headless --path . --import || true
+
+      # 只导出 Web 预设：Android/iOS/macOS 在 CI 里没有 SDK，全量导出会失败
+      - name: 导出 Web
+        run: |
+          mkdir -p build/web
+          ./Godot_v${GODOT_VERSION}-${GODOT_CHANNEL}_linux.x86_64 --headless --path . \
+            --export-release "Web" build/web/index.html
+          ls -lh build/web
+
+      - name: 发布到 gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/web
+          publish_branch: gh-pages
+          commit_message: "deploy: ${{ github.ref_name }}"
