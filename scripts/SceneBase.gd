@@ -11,6 +11,11 @@ const C_TEXT_LIGHT   := Color(0.88, 0.95, 0.88)
 const C_TEXT_TITLE   := Color(0.30, 1.00, 0.45)
 ## UI 文字整体放大系数（对话框、HUD、提示条都走 _style_label）
 const UI_TEXT_SCALE := 1.10
+## "继续 / 进入下一关"按钮的统一字号。各场景若二次调用 _style_button 改配色，
+## 必须再把这个字号设回去，否则会退回 _style_button 的默认 19
+const CONTINUE_FONT_SIZE := 31
+## 右上角"← 关卡选择"按钮的统一字号（同样要在 _style_button 之后补设）
+const BACK_FONT_SIZE := 28
 const C_HIGHLIGHT    := Color(1.00, 0.90, 0.15)
 const C_CORRECT      := Color(0.20, 0.90, 0.30)
 const C_WRONG        := Color(0.95, 0.25, 0.15)
@@ -35,6 +40,16 @@ var scene_completed: bool = false
 # ===== 交互对象登记 =====
 # name -> {area, mat, orig_color, enabled}
 var interactables: Dictionary = {}
+
+# 最近一次弹出的提示条，供子类判断是否还有一条正在显示
+var _last_toast: Panel = null
+
+# 提示条队列：子类把 queue_toasts 设为 true 后，红/绿提示框严格先后出现
+var queue_toasts: bool = false
+var _toast_queue: Array = []
+var _toast_active: bool = false
+var _toast_forced: bool = false
+var _toast_skip: bool = false
 
 # ===== 相机 =====
 var camera: Camera3D
@@ -158,7 +173,7 @@ func _create_dialog() -> void:
 
 	dialog_body_lbl = Label.new()
 	dialog_body_lbl.position = Vector2(24, 82)
-	dialog_body_lbl.size = Vector2(1160, 210)
+	dialog_body_lbl.size = Vector2(1108, 210)   # 右边留出"继续"按钮的位置，正文不会压到按钮下面
 	dialog_body_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_style_label(dialog_body_lbl, 21, C_TEXT_LIGHT)
 	dialog_panel.add_child(dialog_body_lbl)
@@ -175,25 +190,26 @@ func _create_dialog() -> void:
 	next_btn.text = "继续 ▶"
 	next_btn.visible = false
 	_style_button(next_btn, Color(0.12, 0.45, 0.18))
-	next_btn.add_theme_font_size_override("font_size", 31)
+	# _style_button 会把字号重置成 19，这里必须再设一次，才是全场景统一的"继续"字号
+	next_btn.add_theme_font_size_override("font_size", CONTINUE_FONT_SIZE)
 	next_btn.pressed.connect(_on_next_pressed)
 	dialog_panel.add_child(next_btn)
 
 	hint_lbl = Label.new()
 	hint_lbl.anchor_left = 1.0
 	hint_lbl.anchor_right = 1.0
-	hint_lbl.anchor_top = 0.5
-	hint_lbl.anchor_bottom = 0.5
-	hint_lbl.offset_left = -246.0
+	hint_lbl.anchor_top = 1.0
+	hint_lbl.anchor_bottom = 1.0
+	hint_lbl.offset_left = -392.0
 	hint_lbl.offset_right = -18.0
-	hint_lbl.offset_top = -34.0
-	hint_lbl.offset_bottom = 34.0
+	hint_lbl.offset_top = -62.0
+	hint_lbl.offset_bottom = -6.0
 	hint_lbl.text = "← 点击红色高亮的物体继续"
 	hint_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hint_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_style_label(hint_lbl, 22, Color(0.82, 0.72, 1.0))
+	hint_lbl.autowrap_mode = TextServer.AUTOWRAP_OFF   # 强制单行
+	_style_label(hint_lbl, 22, Color(1.0, 0.90, 0.20))   # 亮黄
 	hint_lbl.add_theme_constant_override("outline_size", 1)
-	hint_lbl.add_theme_color_override("font_outline_color", Color(0.82, 0.72, 1.0))
+	hint_lbl.add_theme_color_override("font_outline_color", Color(0.28, 0.18, 0.0))
 	hint_lbl.visible = false
 	dialog_panel.add_child(hint_lbl)
 
@@ -202,12 +218,13 @@ func _create_back_button() -> void:
 	btn.text = "← 关卡选择"
 	btn.anchor_left = 1.0
 	btn.anchor_right = 1.0
-	btn.offset_left = -172.0
+	btn.offset_left = -204.0
 	btn.offset_right = -10.0
-	btn.offset_top = 10.0
-	btn.offset_bottom = 58.0
+	btn.offset_top = 8.0
+	btn.offset_bottom = 62.0
 	_style_button(btn, Color(0.22, 0.10, 0.04))
-	btn.add_theme_font_size_override("font_size", 24)
+	# _style_button 会把字号重置成 19，这里必须再设一次才是统一字号
+	btn.add_theme_font_size_override("font_size", BACK_FONT_SIZE)
 	btn.pressed.connect(GameManager.go_to_level_select)
 	canvas_layer.add_child(btn)
 
@@ -224,6 +241,7 @@ func _show_step(idx: int) -> void:
 	dialog_title_lbl.text = step.get("title", "")
 	_fit_title_width()
 	dialog_body_lbl.text  = step.get("body", "")
+	_fit_body_font(dialog_body_lbl.text)
 	_fit_dialog_height()
 
 	var auto_adv: bool = step.get("click_to_advance", false)
@@ -280,6 +298,8 @@ func _complete_scene() -> void:
 		steps[-1].get("completion_text",
 		"太棒了！你已成功完成本实验步骤。\n单倍体育种是现代生物技术育种的重要方法，你刚才模拟了真实实验的关键操作。")
 	)
+	_fit_body_font(dialog_body_lbl.text)
+	_fit_dialog_height()   # 通关文案也要重算高度，否则会冲出对话框
 	next_btn.text = "进入下一关 →"
 	next_btn.visible = true
 	hint_lbl.visible = false
@@ -490,20 +510,35 @@ func attach_label3d(obj_name: String, text: String, offset: Vector3,
 # =====================================================================
 # 临时消息
 # =====================================================================
-func flash_message(msg: String, good: bool = true, dur: float = 2.2, font_size: int = 20, custom_color: Color = Color(-1, -1, -1), half_w: int = 220, half_h: int = 40, show_prefix: bool = true) -> void:
+func flash_message(msg: String, good: bool = true, dur: float = 2.2, font_size: int = 20, custom_color: Color = Color(-1, -1, -1), half_w: int = 220, half_h: int = 40, show_prefix: bool = true, offset_x: float = 0.0, offset_y: float = 0.0) -> void:
+	# 队列模式：新提示先排队，等上一条完全消失再出现，避免红框绿框叠在一起
+	if queue_toasts and not _toast_forced:
+		_toast_queue.append([msg, good, dur, font_size, custom_color,
+			half_w, half_h, show_prefix, offset_x, offset_y])
+		if _toast_active:
+			# 已经有一条在显示：立刻收掉它，新提示紧接着出现——
+			# 若等它播满 dur，玩家会觉得绿框"慢半拍"
+			if is_instance_valid(_last_toast):
+				_last_toast.queue_free()
+				_last_toast = null
+			_toast_skip = true
+		else:
+			_drain_toasts()
+		return
 	var use_custom := custom_color.r >= 0.0
 	var fg_color := custom_color if use_custom else (C_CORRECT if good else C_WRONG)
 	var bg := Panel.new()
 	bg.anchor_left = 0.5; bg.anchor_right = 0.5
 	bg.anchor_top  = 0.5; bg.anchor_bottom = 0.5
 	bg.offset_left = -half_w; bg.offset_right = half_w
-	bg.offset_top  = -half_h;  bg.offset_bottom = half_h
+	bg.offset_top  = -half_h + offset_y;  bg.offset_bottom = half_h + offset_y
 	var sty := StyleBoxFlat.new()
 	sty.bg_color = Color(0.03, 0.14, 0.05, 0.95) if good else Color(0.18, 0.04, 0.02, 0.95)
 	sty.set_border_width_all(2)
 	sty.border_color = fg_color
 	sty.set_corner_radius_all(8)
 	bg.add_theme_stylebox_override("panel", sty)
+	bg.set_meta("toast", true)   # 便于统计/清理当前屏幕上还有几条提示
 	canvas_layer.add_child(bg)
 
 	var lbl := Label.new()
@@ -520,12 +555,32 @@ func flash_message(msg: String, good: bool = true, dur: float = 2.2, font_size: 
 	var fs := int(lbl.get_theme_font_size("font_size"))
 	var text_w := f.get_string_size(lbl.text, HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x
 	var box_w := maxf(half_w * 2.0, text_w + 56.0)
-	bg.offset_left = -box_w * 0.5
-	bg.offset_right = box_w * 0.5
+	bg.offset_left = -box_w * 0.5 + offset_x
+	bg.offset_right = box_w * 0.5 + offset_x
 
 	var tw := create_tween()
 	tw.tween_interval(dur)
 	tw.tween_callback(bg.queue_free)
+	_last_toast = bg
+
+## 逐条播放排队的提示：正常情况下播满 dur；若期间又来了新提示，
+## 旧框已被立刻释放，这里只补 0.12 s 间隔就切换，保证"先后出现"但不拖沓
+func _drain_toasts() -> void:
+	_toast_active = true
+	while not _toast_queue.is_empty():
+		var a: Array = _toast_queue.pop_front()
+		_toast_skip = false
+		_toast_forced = true
+		flash_message(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9])
+		_toast_forced = false
+		var dur := float(a[2])
+		var waited := 0.0
+		while waited < dur and not _toast_skip:
+			await get_tree().create_timer(0.05).timeout
+			waited += 0.05
+		if _toast_skip:
+			await get_tree().create_timer(0.12).timeout
+	_toast_active = false
 
 # =====================================================================
 # 样式助手
@@ -538,13 +593,38 @@ func _apply_panel_style(p: Panel, color: Color) -> void:
 	p.add_theme_stylebox_override("panel", s)
 
 ## 对话框高度跟着正文走：短文案不该顶着一块 320px 的空板子
+## 正文字号自适应：从大到小找第一个"排得下"的字号——文字越少字越大，
+## 同时保证任何长度都不会冲出边框
+const BODY_SIZES := [30, 28, 26, 24, 23, 22, 21, 20, 19, 18, 17, 16]
+
+func _fit_body_font(_text: String) -> void:
+	if dialog_body_lbl == null:
+		return
+	var picked: int = BODY_SIZES[BODY_SIZES.size() - 1]
+	for s in BODY_SIZES:
+		dialog_body_lbl.add_theme_font_size_override("font_size", s)
+		if dialog_body_lbl.get_minimum_size().y <= 250.0:
+			picked = s
+			break
+	dialog_body_lbl.add_theme_font_size_override("font_size", picked)
+
 func _fit_dialog_height() -> void:
 	if dialog_panel == null or dialog_body_lbl == null:
 		return
 	# 不能用 reset_size()：会把 autowrap 标签的宽度重置掉，正文变成一行一个字
+	# 对话框最高 340，正文可用高度 = 340 - 106(标题区) - 24(下边距)
+	const BODY_MAX_H := 250.0
 	var body_h := dialog_body_lbl.get_minimum_size().y
+	var fs := int(dialog_body_lbl.get_theme_font_size("font_size"))
+	# 文字太多放不下就逐步缩小字号，保证任何场景都不会冲出外框
+	while body_h > BODY_MAX_H and fs > 13:
+		fs -= 1
+		dialog_body_lbl.add_theme_font_size_override("font_size", fs)
+		body_h = dialog_body_lbl.get_minimum_size().y
+	# 标签高度也跟着实际行数走，避免文字画到框外
+	dialog_body_lbl.size = Vector2(dialog_body_lbl.size.x, body_h)
 	var need := 106.0 + body_h + 24.0
-	dialog_panel.offset_top = -clampf(need, 210.0, 330.0)
+	dialog_panel.offset_top = -clampf(need, 210.0, 380.0)
 
 ## 标题按字宽自适应：字号放大后，Scene2 那种长标题会顶出屏幕
 func _fit_title_width() -> void:

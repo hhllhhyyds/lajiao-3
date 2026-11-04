@@ -35,7 +35,7 @@ func _build_ui() -> void:
 
 	# 标题栏
 	var title_panel := Panel.new()
-	title_panel.custom_minimum_size = Vector2(0, 80)
+	title_panel.custom_minimum_size = Vector2(0, 88)
 	_style_panel(title_panel, Color(0.03, 0.12, 0.05, 1.0))
 	vbox.add_child(title_panel)
 
@@ -47,7 +47,7 @@ func _build_ui() -> void:
 
 	var back_btn := Button.new(); back_btn.text = "← 返回主菜单"
 	_style_btn(back_btn, Color(0.20, 0.08, 0.04))
-	back_btn.custom_minimum_size = Vector2(160, 44)
+	back_btn.custom_minimum_size = Vector2(190, 54)
 	back_btn.pressed.connect(GameManager.go_to_main_menu)
 	title_hbox.add_child(back_btn)
 
@@ -55,7 +55,7 @@ func _build_ui() -> void:
 	title_hbox.add_child(sp)
 
 	var title_lbl := Label.new(); title_lbl.text = "🌶  选择实验关卡"
-	title_lbl.add_theme_font_size_override("font_size", 42)
+	title_lbl.add_theme_font_size_override("font_size", 52)
 	title_lbl.add_theme_color_override("font_color", Color(0.30, 1.0, 0.45))
 	title_hbox.add_child(title_lbl)
 
@@ -64,13 +64,13 @@ func _build_ui() -> void:
 
 	var reset_btn := Button.new(); reset_btn.text = "重置进度"
 	_style_btn(reset_btn, Color(0.25, 0.05, 0.04))
-	reset_btn.custom_minimum_size = Vector2(120, 44)
+	reset_btn.custom_minimum_size = Vector2(150, 54)
 	reset_btn.pressed.connect(_on_reset_pressed)
 	title_hbox.add_child(reset_btn)
 
 	# 进度条
 	var prog_panel := Panel.new()
-	prog_panel.custom_minimum_size = Vector2(0, 52)
+	prog_panel.custom_minimum_size = Vector2(0, 56)
 	_style_panel(prog_panel, Color(0.05, 0.14, 0.06, 1.0))
 	vbox.add_child(prog_panel)
 
@@ -80,21 +80,21 @@ func _build_ui() -> void:
 	prog_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	prog_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	prog_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	prog_label.add_theme_font_size_override("font_size", 24)
+	prog_label.add_theme_font_size_override("font_size", 30)
 	prog_label.add_theme_color_override("font_color", Color(0.70, 0.92, 0.72))
 	prog_panel.add_child(prog_label)
 
 	# 关卡卡片网格
-	var sp3 := Control.new(); sp3.custom_minimum_size = Vector2(0, 24); vbox.add_child(sp3)
+	var sp3 := Control.new(); sp3.custom_minimum_size = Vector2(0, 12); vbox.add_child(sp3)
 	var grid := GridContainer.new(); grid.columns = 3
-	grid.add_theme_constant_override("h_separation", 24)
-	grid.add_theme_constant_override("v_separation", 24)
+	grid.add_theme_constant_override("h_separation", 20)
+	grid.add_theme_constant_override("v_separation", 20)
 	var center := CenterContainer.new()
 	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_child(center)
 	center.add_child(grid)
 
-	var card_width := 350
+	var card_width := 380
 
 	for i in 7:
 		var lv := i + 1
@@ -107,7 +107,7 @@ func _build_ui() -> void:
 
 func _make_card(lv: int, unlocked: bool, completed: bool, width: int) -> Panel:
 	var card := Panel.new()
-	card.custom_minimum_size = Vector2(width, 230)
+	card.custom_minimum_size = Vector2(width, 262)
 
 	var bg_color: Color
 	if completed:
@@ -139,19 +139,19 @@ func _make_card(lv: int, unlocked: bool, completed: bool, width: int) -> Panel:
 
 	var icon_lbl := Label.new()
 	icon_lbl.text = LEVEL_ICONS[lv - 1]
-	icon_lbl.add_theme_font_size_override("font_size", 48)
+	icon_lbl.add_theme_font_size_override("font_size", 58)
 	top_h.add_child(icon_lbl)
 
 	if completed:
 		var check := Label.new(); check.text = " ✓"
-		check.add_theme_font_size_override("font_size", 40)
+		check.add_theme_font_size_override("font_size", 48)
 		check.add_theme_color_override("font_color", Color(0.25, 0.95, 0.40))
 		top_h.add_child(check)
 
 	var num_lbl := Label.new()
 	num_lbl.text = "关卡 %d：%s" % [lv, GameManager.get_level_name(lv)]
 	num_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	num_lbl.add_theme_font_size_override("font_size", 24)
+	num_lbl.add_theme_font_size_override("font_size", 30)
 	var tc := Color(0.25, 0.95, 0.45) if completed \
 		else (Color(0.30, 0.72, 0.95) if unlocked else Color(0.45, 0.45, 0.50))
 	num_lbl.add_theme_color_override("font_color", tc)
@@ -161,11 +161,11 @@ func _make_card(lv: int, unlocked: bool, completed: bool, width: int) -> Panel:
 	desc_lbl.text = LEVEL_DESC[lv - 1]
 	desc_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc_lbl.add_theme_font_size_override("font_size", 19)
+	desc_lbl.add_theme_font_size_override("font_size", 24)
 	desc_lbl.add_theme_color_override("font_color", Color(0.68, 0.82, 0.70))
 	vb.add_child(desc_lbl)
 
-	var sp := Control.new(); sp.custom_minimum_size = Vector2(0, 10); vb.add_child(sp)
+	var sp := Control.new(); sp.custom_minimum_size = Vector2(0, 6); vb.add_child(sp)
 
 	var btn := Button.new()
 	if completed:
@@ -178,7 +178,7 @@ func _make_card(lv: int, unlocked: bool, completed: bool, width: int) -> Panel:
 	_style_btn(btn,
 		Color(0.08, 0.35, 0.14) if completed \
 		else (Color(0.08, 0.25, 0.38) if unlocked else Color(0.15, 0.15, 0.18)))
-	btn.custom_minimum_size = Vector2(280, 46)
+	btn.custom_minimum_size = Vector2(300, 50)
 	if unlocked:
 		btn.pressed.connect(func(): GameManager.go_to_level(lv))
 	vb.add_child(btn)
@@ -200,5 +200,5 @@ func _style_btn(btn: Button, bg: Color) -> void:
 		s.set_border_width_all(1); s.border_color = Color(0.28, 0.65, 0.35)
 		s.set_corner_radius_all(6)
 		btn.add_theme_stylebox_override(state, s)
-	btn.add_theme_font_size_override("font_size", 22)
+	btn.add_theme_font_size_override("font_size", 28)
 	btn.add_theme_color_override("font_color", Color.WHITE)

@@ -42,6 +42,8 @@ func _ready() -> void:
 	light_focus = Vector3(0.0, 1.25, -1.0)
 	light_radius = 4.2
 	light_intensity = 0.46
+	# 提示条排队：绿框/红框严格一条退出后另一条才出现，避免重叠
+	queue_toasts = true
 	super._ready()
 
 # =====================================================================
@@ -102,19 +104,8 @@ func _spawn_incubator(pos: Vector3, dark: bool) -> void:
 		"incubator_panel": MAT_DISPLAY,
 		"incubator_display": MAT_DISPLAY,
 	}
-	PropKit.spawn(self, INCUBATOR_SCENE, pos, Vector3.ZERO, mapping, Vector3(1.6, 1.35, 1.35))
+	PropKit.spawn(self, INCUBATOR_SCENE, pos, Vector3.ZERO, mapping, Vector3(1.40, 1.16, 1.22))
 
-	# 隔板上摆几个培养皿，空柜子看起来像道具
-	var dish_mat := StandardMaterial3D.new()
-	dish_mat.albedo_color = Color(0.90, 0.91, 0.88)
-	dish_mat.roughness = 0.35
-	for i in 4:
-		var shelf_z: float = (0.34 + (i % 2) * 0.52) * 1.35
-		var dish := MeshInstance3D.new()
-		dish.mesh = mk_cyl(0.085, 0.026)
-		dish.material_override = dish_mat
-		dish.position = pos + Vector3(-0.22 + (i % 2) * 0.44, shelf_z + 0.020, 0.02)
-		add_child(dish)
 
 	# 箱内照明：光照箱是冷白灯管，暗箱只留一点门缝微光
 	if dark:
@@ -140,24 +131,29 @@ func _spawn_incubator(pos: Vector3, dark: bool) -> void:
 	add_child(glow)
 
 func _build_dark_incubator() -> void:
-	_spawn_incubator(Vector3(-4.05, 0.0, -2.2), true)
+	# z 从 -2.2 提到 -1.15：透视上整体下沉一截，也和前景台面更贴合
+	_spawn_incubator(Vector3(-3.70, 0.0, -1.35), true)
 
 	create_interactable("dark_incubator",
-		Vector3(-4.05, 1.3, -2.0),
+		Vector3(-3.70, 1.2, -1.15),
 		mk_box(Vector3(1.9, 2.6, 1.6)),
 		Color(0, 0, 0, 0), Color(0.60, 0.60, 0.85), "高温暗培养箱")
 	interactables["dark_incubator"]["area"].get_child(0).visible = false
-	attach_label3d("dark_incubator", "高温暗培养箱（33–37 ℃，黑暗）", Vector3(0.60, 1.46, 0.62), 40, Color(0.82, 0.80, 1.0))
+	var lbl_dark := attach_label3d("dark_incubator", "高温暗培养箱\n（33–37 ℃，黑暗）", Vector3(0.55, 1.37, 0.62), 40, Color(0.42, 0.68, 1.0))
+	lbl_dark.font_px = 22
+	lbl_dark.bold = true
 
 func _build_light_incubator() -> void:
-	_spawn_incubator(Vector3(4.05, 0.0, -2.2), false)
+	_spawn_incubator(Vector3(3.70, 0.0, -1.35), false)
 
 	create_interactable("light_incubator",
-		Vector3(4.05, 1.3, -2.0),
+		Vector3(3.70, 1.2, -1.15),
 		mk_box(Vector3(1.9, 2.6, 1.6)),
 		Color(0, 0, 0, 0), Color(1.0, 1.0, 0.72), "光照培养箱")
 	interactables["light_incubator"]["area"].get_child(0).visible = false
-	attach_label3d("light_incubator", "光照培养箱（25 ℃，光照）", Vector3(-0.60, 1.46, 0.62), 40, Color(0.88, 1.0, 0.62))
+	var lbl_light := attach_label3d("light_incubator", "光照培养箱\n（25 ℃，光照）", Vector3(-0.55, 1.37, 0.62), 40, Color(0.88, 1.0, 0.62))
+	lbl_light.font_px = 22
+	lbl_light.bold = true
 
 ## 操作台上方的超净台玻璃罩：四周铝合金框 + 透明玻璃三面一顶
 func _build_hood() -> void:
@@ -239,7 +235,7 @@ func _build_operation_table() -> void:
 	anther_ball = MeshInstance3D.new()
 	anther_ball.mesh = mk_sphere(0.080)
 	var bmat := StandardMaterial3D.new()
-	bmat.albedo_color = Color(0.95, 0.89, 0.58)
+	bmat.albedo_color = Color(0.84, 0.76, 0.42)
 	bmat.roughness = 0.42
 	anther_ball.material_override = bmat
 	anther_ball.position = Vector3(0.0, 0.084, 0.0)
@@ -247,7 +243,7 @@ func _build_operation_table() -> void:
 	var anther_hi := MeshInstance3D.new()
 	anther_hi.mesh = mk_sphere(0.027)
 	var hmat := StandardMaterial3D.new()
-	hmat.albedo_color = Color(1.0, 0.97, 0.80)
+	hmat.albedo_color = Color(0.93, 0.87, 0.62)
 	hmat.roughness = 0.30
 	anther_hi.material_override = hmat
 	anther_hi.position = Vector3(-0.026, 0.132, -0.024)
@@ -291,8 +287,8 @@ func _build_operation_table() -> void:
 		fleck.position = Vector3(cos(ang) * 0.13, 0.028, sin(ang) * 0.13)
 		anther_node.add_child(fleck)
 
-	_dish_label = attach_label3d("anther_dish", "放置了花药的\n诱导愈伤组织培养皿（点击取出）",
-		Vector3(0, 0.34, 0), 42, Color(1.0, 0.95, 0.60))
+	_dish_label = attach_label3d("anther_dish", "放置了花药的诱导愈伤组织培养皿（点击取出）",
+		Vector3(0, 0.57, 0), 42, Color(0.16, 0.62, 0.26))
 
 func _build_control_panel() -> void:
 	var cp := Panel.new()
@@ -310,19 +306,33 @@ func _build_control_panel() -> void:
 	vb.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	vb.offset_left = 324; vb.offset_right = -12
 	vb.offset_top = 10; vb.offset_bottom = -10
-	vb.add_theme_constant_override("separation", 10)
+	vb.add_theme_constant_override("separation", 4)
 	cp.add_child(vb)
 
-	var h1 := Label.new(); h1.text = "🌡  培养条件设置（供参考）"
-	h1.add_theme_font_size_override("font_size", 24)
-	h1.add_theme_color_override("font_color", Color(0.4, 0.9, 0.5))
+	var h1 := Label.new(); h1.text = "🌡  培养条件设置："
+	h1.add_theme_font_size_override("font_size", 36)
+	# 标题加粗：embolden 提升字重
+	var h1fv := FontVariation.new()
+	h1fv.base_font = h1.get_theme_font("font")
+	h1fv.variation_embolden = 1.6
+	h1.add_theme_font_override("font", h1fv)
+	h1.add_theme_color_override("font_color", Color(0.55, 0.80, 1.0))   # 淡蓝
 	vb.add_child(h1)
 
 	var hb_t := HBoxContainer.new(); vb.add_child(hb_t)
 
 
+	# 温度标识右侧留白，整体往右靠一点
+	var tpad := Control.new()
+	tpad.custom_minimum_size = Vector2(470, 0)
+	hb_t.add_child(tpad)
 	ui_temp_lbl = Label.new(); ui_temp_lbl.text = "  25.0 ℃  "
-	ui_temp_lbl.add_theme_font_size_override("font_size", 34)
+	ui_temp_lbl.add_theme_font_size_override("font_size", 40)
+	# 加粗：embolden 提升字重
+	var tfv := FontVariation.new()
+	tfv.base_font = ui_temp_lbl.get_theme_font("font")
+	tfv.variation_embolden = 1.5
+	ui_temp_lbl.add_theme_font_override("font", tfv)
 	ui_temp_lbl.add_theme_color_override("font_color", Color.WHITE)
 	ui_temp_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ui_temp_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -351,10 +361,10 @@ func _build_control_panel() -> void:
 
 	_update_light_display()
 
-	var sep := Control.new(); sep.custom_minimum_size = Vector2(0, 6); vb.add_child(sep)
+	var sep := Control.new(); sep.custom_minimum_size = Vector2(0, 0); vb.add_child(sep)   # “培养时间”上移
 
 	ui_timer_lbl = Label.new(); ui_timer_lbl.text = "培养时间：— 天"
-	ui_timer_lbl.add_theme_font_size_override("font_size", 22)
+	ui_timer_lbl.add_theme_font_size_override("font_size", 30)
 	ui_timer_lbl.add_theme_color_override("font_color", Color(0.75, 0.90, 0.78))
 	vb.add_child(ui_timer_lbl)
 
@@ -362,24 +372,55 @@ func _build_control_panel() -> void:
 # =====================================================================
 # 步骤定义
 # =====================================================================
-## 红色名称牌：和场景三一样醒目，并抬到固定标签上方
-func _style_tooltip(_obj_name: String, lbl: Label3D) -> void:
-	lbl.font_size = 34
-	lbl.outline_size = 7
-	lbl.modulate = Color(1.0, 0.26, 0.18)
+## 提示条字号：红框绿框统一 28，保持视觉一致
+func flash_message(msg: String, good: bool = true, dur: float = 2.2,
+		font_size: int = 20, custom_color: Color = Color(-1, -1, -1),
+		half_w: int = 220, half_h: int = 40, show_prefix: bool = true,
+		offset_x: float = 0.0, offset_y: float = 0.0) -> void:
+	# 红框统一压成一行、字号收小一档
+	if not good:
+		msg = msg.replace("\n", " ")
+	var fs := maxi(font_size, 28) if good else maxi(font_size, 24)
+	# 字号变大后提示条很宽，默认落在画面正中会压住台面和培养皿；
+	# 统一上移到台面上方的空墙面
+	var oy := offset_y if offset_y != 0.0 else -175.0
+	super.flash_message(msg, good, dur, fs, custom_color, half_w, half_h,
+		show_prefix, offset_x, oy)
 
-func _tooltip_offset(_obj_name: String) -> Vector3:
-	return Vector3.ZERO
+## 红色名称牌：和场景三一样醒目，并抬到固定标签上方
+## 三条红字统一成同一种正红，加深描边让它在浅色墙面上更跳
+func _style_tooltip(_obj_name: String, lbl: Label3D) -> void:
+	lbl.font_size = 24
+	lbl.outline_size = 8
+	lbl.outline_modulate = Color(0.22, 0.0, 0.0, 0.95)
+	lbl.modulate = Color(1.0, 0.06, 0.04)
+
+func _tooltip_offset(obj_name: String) -> Vector3:
+	# 红色提示词统一排到各自固定标签的正下方
+	match obj_name:
+		"anther_dish": return Vector3(0.0, 1.05, 0.0)
+		"dark_incubator": return Vector3(0.0, -0.50, 0.0)
+		"light_incubator": return Vector3(0.0, -0.50, 0.0)
+	return Vector3(0.0, -0.30, 0.0)
 
 ## 每个对象上方已经有固定标签，把红色名称牌摆到那条标签的正上方
+# 培养皿放进培养箱后停留的位置：跟着箱体的新坐标走，落在箱门内侧隔板上
+const DARK_SHELF := Vector3(-3.70, 1.00, -1.30)
+const LIGHT_SHELF := Vector3(3.70, 1.00, -1.30)
 const _LABEL_TOPS := {
 	"dark_incubator": 1.46,
 	"light_incubator": 1.46,
-	"anther_dish": 0.34,
+	"anther_dish": 0.57,
+}
+# 红字相对固定标签的纵向偏移：负数=标签下方，正数=标签上方
+const _TIP_DY := {
+	"dark_incubator": -0.02,   # 与标签同一水平线
+	"light_incubator": -0.02,   # 与标签同一水平线
+	"anther_dish": -0.17,
 }
 const _LABEL_DX := {
-	"dark_incubator": 0.60,
-	"light_incubator": -0.60,
+	"dark_incubator": 1.55,   # 排到标签右侧
+	"light_incubator": -1.55,   # 排到标签左侧
 	"anther_dish": 0.0,
 }
 
@@ -392,42 +433,39 @@ func _park_tooltips() -> void:
 		var dist := area.global_position.distance_to(camera.global_position)
 		for ch in area.get_children():
 			if ch is Label3D and not ch.get_meta("static_label", false):
-				# 三个红字统一挂在各自固定标签的正下方 0.30m
+				# 红字贴着各自固定标签摆：培养箱放标签下方，培养皿放标签上方
+				# （培养皿下方就是皿本身，放下面会挡住物体）
 				ch.position = Vector3(float(_LABEL_DX[nm]),
-					float(_LABEL_TOPS[nm]) - 0.30, 0.0)
+					float(_LABEL_TOPS[nm]) + float(_TIP_DY[nm]), 0.0)
 				ch.pixel_size = 0.0040 * dist / 5.6
 
 func _define_steps() -> void:
 	steps = [
 		{
 			"title": "📖  诱导愈伤组织——最关键步骤",
-			"body": "诱导愈伤组织分两个阶段：\n"
-				+ "① 热激阶段：33–37 ℃ + 黑暗培养 2–10 天（热激诱导小孢子<花粉细胞>脱分化）\n"
-				+ "② 光照培养：转入 25 ℃ + 光照条件下培养（促进愈伤组织细胞增殖）\n"
-				+ "右侧面板可调节温度和光照模式。",
+			"body": "诱导愈伤分两阶段：\n"
+				+ "① 热激：33–37 ℃，黑暗 2–10 天（诱导花药脱分化）\n"
+				+ "② 光照：25 ℃，光照 7-10 天（促进愈伤增殖）\n"
+				+ "最上方面板可调温度与光照模式。",
 			"click_to_advance": true,
 			"active_objects": []
 		},
 		{
 			"title": "① 取出培养皿 → 放入高温暗培养箱",
-			"body": "先点击中央操作台上的【诱导愈伤组织培养皿】取出，\n"
-				+ "再点击左侧的【高温暗培养箱】将培养皿放入。\n"
-				+ "可先用右侧面板将温度调至 33–37 ℃、切换为黑暗模式。",
+			"body": "先点击台面上的培养皿取出，再点击左侧【高温暗培养箱】放入。\n"
+				+ "可先把温度调至 33–37 ℃ 并切换黑暗模式。",
 			"click_to_advance": false,
 			"active_objects": ["anther_dish", "dark_incubator"]
 		},
 		{
 			"title": "② 热激暗培养（33–37 ℃，黑暗，2–10 天）",
-			"body": "花药正在高温暗培养箱中进行热激处理。\n"
-				+ "培养过程会自动推进，观察花药逐渐转绿、形成愈伤组织。\n"
-				+ "小孢子（花粉）细胞开始脱分化，逐渐形成愈伤组织。",
+			"body": "花药正在暗培养箱中热激，过程自动推进；观察花药转绿、逐渐形成愈伤组织。",
 			"click_to_advance": false,
 			"active_objects": []
 		},
 		{
 			"title": "③ 转入光照培养箱（25 ℃，光照）",
-			"body": "热激处理完成！愈伤组织已初步形成。\n"
-				+ "点击右侧的【光照培养箱】，将愈伤组织转入进行下一阶段培养。",
+			"body": "热激完成，愈伤组织初步形成。点击右侧【光照培养箱】转入下一阶段。",
 			"click_to_advance": false,
 			"active_objects": ["light_incubator"],
 			"correct_object": "light_incubator",
@@ -435,11 +473,10 @@ func _define_steps() -> void:
 		},
 		{
 			"title": "④ 光照培养，愈伤组织增殖",
-			"body": "在 25 ℃ 光照条件下，愈伤组织将快速增殖成较大的绿色组织块。\n"
-				+ "培养过程会自动推进，观察愈伤组织的生长。",
+			"body": "25 ℃ 光照下愈伤组织快速增殖成较大的绿色组织块，过程自动推进。",
 			"click_to_advance": false,
 			"active_objects": [],
-			"completion_text": "愈伤组织诱导完成！\n经过热激（33–37℃，黑暗）→ 光照（25℃）两阶段处理，\n花药中的单倍体小孢子（花粉细胞）成功脱分化形成了愈伤组织。\n这是单倍体育种最关键的一步！\n接下来将诱导愈伤组织分化出芽和根，发育成完整植株。"
+			"completion_text": "愈伤组织诱导完成！\n经热激（33–37 ℃，黑暗）→ 光照（25 ℃）两阶段，花药成功脱分化形成愈伤组织。\n下一步：诱导生芽与生根。"
 		},
 	]
 
@@ -457,24 +494,25 @@ func _on_interactable_clicked(obj_name: String) -> void:
 				if not _dish_taken:
 					flash_message("请先点击操作台上的培养皿将其取出！", false)
 				elif temp_set < 33.0 or temp_set > 37.0:
-					flash_message("温度不对！热激需要 33–37 ℃，当前 %.0f ℃\n请用右侧面板先升温！" % temp_set, false)
+					flash_message("温度不对！热激需要 33–37 ℃，当前 %.0f ℃\n请用最上方面板先升温！" % temp_set, false)
 				elif not is_dark_mode:
-					flash_message("需要切换为【黑暗模式】才能进行热激培养！\n请点击右侧面板的光照切换按钮！", false)
+					flash_message("需要切换为【黑暗模式】才能进行热激培养！\n请点击最上方面板的光照切换按钮！", false)
 				else:
 					flash_message("培养皿已放入高温暗培养箱 ✓", true)
 					_swap_anther_to_callus()
-					_animate_dish_to(Vector3(-4.05, 0.98, -2.2))
+					_animate_dish_to(DARK_SHELF)
 					await get_tree().create_timer(1.0).timeout
 					advance_step()
 		3:
 			if obj_name == "light_incubator":
-				if temp_set < 23.0 or temp_set > 27.0:
-					flash_message("温度不对！光照培养需要 25 ℃，当前 %.0f ℃\n请先降温至 25 ℃！" % temp_set, false)
+				# 光照培养必须正好 25 ℃，差一点也放进不去
+				if absf(temp_set - 25.0) > 0.05:
+					flash_message("温度不对！光照培养需要 25 ℃，当前 %.1f ℃\n请先调至 25 ℃！" % temp_set, false)
 				elif is_dark_mode:
-					flash_message("需要切换为【光照模式】才能进行光照培养！\n请点击右侧面板的光照切换按钮！", false)
+					flash_message("需要切换为【光照模式】才能进行光照培养！\n请点击最上方面板的光照切换按钮！", false)
 				else:
 					flash_message("愈伤组织已转入光照培养箱 ✓", true)
-					_animate_dish_to(Vector3(4.05, 0.98, -2.2))
+					_animate_dish_to(LIGHT_SHELF)
 					await get_tree().create_timer(1.0).timeout
 					advance_step()
 		_:
@@ -497,20 +535,22 @@ func _set_callus_scale(sc: float) -> void:
 		return
 	callus_root.scale = Vector3(sc, 1.0 + (sc - 1.0) * 0.7, sc)
 
-## 暗培养结束、转入光照箱时：皿里的花药换成黄绿色愈伤组织团块
+## 放入暗培养箱后开始“花药 → 愈伤组织”的渐变，不在这一帧瞬间替换：
+## 花药（黄色球）在后续 _process 里逐渐缩小消失，愈伤组织团块由小变大、由黄转绿
 func _swap_anther_to_callus() -> void:
-	if anther_ball:
-		anther_ball.visible = false
 	if callus_root:
 		callus_root.visible = true
+		_set_callus_scale(0.12)
+		if callus_mat:
+			callus_mat.albedo_color = Color(0.88, 0.82, 0.32)
 	if _dish_label:
-		_dish_label.text = "长出愈伤组织的\n诱导愈伤组织培养皿（点击取出）"
+		_dish_label.text = "长出愈伤组织的诱导愈伤组织培养皿（点击取出）"
 
 func _animate_dish_to(target: Vector3) -> void:
 	if not anther_node: return
+	# 直接平移进箱子并落到中层架子上，不再先抬高（抬高会先蹭到上层架子）
 	var tw := create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
-	tw.tween_property(anther_node, "position",
-		target + Vector3(0, 0.2, 0), 0.8)
+	tw.tween_property(anther_node, "position", target, 0.9)
 	if _dish_label:
 		_dish_label.visible = false
 
@@ -532,12 +572,12 @@ func _on_temp_up() -> void:
 func _update_temp_display() -> void:
 	if not ui_temp_lbl: return
 	ui_temp_lbl.text = "  %.1f ℃  " % temp_set
-	# 根据当前步骤突出显示的正确温度范围
+	# 根据当前步骤突出显示的正确温度：热激 33–37 ℃，光照必须正好 25 ℃
 	var ok := false
 	if current_step_index <= 2:
 		ok = (temp_set >= 33.0 and temp_set <= 37.0)
 	else:
-		ok = (temp_set >= 23.0 and temp_set <= 27.0)
+		ok = absf(temp_set - 25.0) <= 0.05
 	var col := Color(0.35, 1.0, 0.45) if ok else Color(1.0, 0.85, 0.30)
 	ui_temp_lbl.add_theme_color_override("font_color", col)
 
@@ -559,15 +599,23 @@ var _days_shown: float = 0.0
 
 func _process(delta: float) -> void:
 	if not timer_running: return
-	growth_timer += delta * 3.5
+	growth_timer += delta * 1.5   # 放慢模拟节奏，花药→愈伤组织的渐变才看得清
 	_days_shown = growth_timer
 
 	if current_step_index == 2:
 		ui_timer_lbl.text = "热激培养：%.1f 天" % _days_shown
-		# 愈伤组织团块逐渐长大
+		# 热激阶段用淡红色，与后面光照阶段的浅绿区分
+		ui_timer_lbl.add_theme_color_override("font_color", Color(1.0, 0.62, 0.60))
+		# 花药渐变成愈伤组织：黄色小球缩小消失，黄绿色团块长大并转绿
+		var p := clampf(growth_timer / 5.0, 0.0, 1.0)
+		if anther_ball:
+			anther_ball.scale = Vector3.ONE * lerpf(1.0, 0.06, p)
+			anther_ball.visible = p < 0.97
 		if callus_root:
-			var sc := 1.0 + clampf(growth_timer / 6.0, 0.0, 0.9)
-			callus_root.scale = Vector3(sc, 1.0 + (sc - 1.0) * 0.7, sc)
+			_set_callus_scale(lerpf(0.12, 1.0, p))
+		if callus_mat:
+			callus_mat.albedo_color = Color(0.88, 0.82, 0.32).lerp(
+				Color(0.66, 0.82, 0.32), p)
 		if growth_timer >= 7.0:
 			timer_running = false
 			flash_message("热激处理完成！愈伤组织已形成", true)
@@ -577,6 +625,7 @@ func _process(delta: float) -> void:
 
 	elif current_step_index == 4:
 		ui_timer_lbl.text = "光照培养：%.1f 天" % _days_shown
+		ui_timer_lbl.add_theme_color_override("font_color", Color(0.75, 0.90, 0.78))
 		if callus_root:
 			_set_callus_scale(minf(callus_root.scale.x + delta * 0.28, 2.0))
 		if callus_mat:

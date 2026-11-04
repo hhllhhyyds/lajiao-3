@@ -127,23 +127,34 @@ func _build_ui() -> void:
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	panel.add_child(vbox)
 
-	# 标题
-	var title_lbl := _add_lbl(vbox, "🌶  辣椒单倍体育种流程虚拟实验平台", 46, Color.WHITE)
+	# 标题：辣椒 emoji 单独放一个 Label（它不设 font_color，否则会被染成蓝色）
+	var title_row := HBoxContainer.new()
+	title_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	title_row.add_theme_constant_override("separation", 16)
+	vbox.add_child(title_row)
+
+	var title_ico := Label.new()
+	title_ico.text = "🌶"
+	title_ico.add_theme_font_size_override("font_size", 64)
+	title_ico.add_theme_constant_override("outline_size", 6)
+	title_ico.add_theme_color_override("font_outline_color", Color(1.0, 0.85, 0.35, 0.55))
+	title_row.add_child(title_ico)
+
+	var title_lbl := Label.new()
+	title_lbl.text = "辣椒单倍体育种流程虚拟实验平台"
+	title_lbl.add_theme_font_size_override("font_size", 46)
+	title_lbl.add_theme_color_override("font_color", Color(0.28, 0.78, 1.0))
 	title_lbl.add_theme_constant_override("outline_size", 3)
 	title_lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0, 0.6))
-	_add_spacer(vbox, 18)
-	_add_lbl(vbox, "高中生物选择性必修三实验", 30, Color(0.20, 0.90, 0.90))
-	_add_spacer(vbox, 8)
-	_add_lbl(vbox, "☆辣椒体细胞染色体倍性 2n=24", 22, Color(0.75, 0.95, 0.78))
+	title_row.add_child(title_lbl)
+	# 标题与副标题之间的间距拉开：整块是垂直居中的，加高这段会让标题整体上移
+	_add_spacer(vbox, 64)
+	_add_lbl(vbox, "☆辣椒体细胞染色体倍性 2n=24", 32, Color.WHITE)
 	_add_spacer(vbox, 30)
 
-	_add_btn(vbox, "▶  开始实验（从第一关）", _on_start_pressed)
-	_add_spacer(vbox, 10)
-	_add_btn(vbox, "📋  选择关卡", _on_level_select_pressed, Color(0.12, 0.30, 0.45))
-	_add_spacer(vbox, 10)
-	_add_btn(vbox, "✖  退出游戏", _on_quit_pressed, Color(0.30, 0.08, 0.05))
-	_add_spacer(vbox, 24)
-	_add_lbl(vbox, "请点击屏幕中红色字体突出显示的对象进行实验操作\n共 7 个实验关卡，循序渐进，完成完整育种流程！", 24, Color(1.0, 0.92, 0.10))
+	_add_btn(vbox, "▶  开始实验", _on_start_pressed)
+	_add_spacer(vbox, 70)
+	_add_lbl(vbox, "请点击屏幕中红色字体突出显示的对象进行实验操作\n共 7 个实验关卡，循序渐进，完成完整育种流程！", 30, Color(1.0, 0.92, 0.10))
 
 func _add_lbl(parent: Control, text: String, fs: int, color: Color) -> Label:
 	var l := Label.new(); l.text = text
@@ -158,14 +169,14 @@ func _add_spacer(parent: Control, h: int) -> void:
 func _add_btn(parent: Control, text: String, cb: Callable,
 		bg: Color = Color(0.10, 0.38, 0.16)) -> Button:
 	var btn := Button.new(); btn.text = text
-	btn.custom_minimum_size = Vector2(460, 58)
+	btn.custom_minimum_size = Vector2(520, 70)
 	for state in ["normal", "hover", "pressed"]:
 		var s := StyleBoxFlat.new()
 		s.bg_color = bg if state == "normal" else (bg.lightened(0.22) if state == "hover" else bg.darkened(0.2))
 		s.set_border_width_all(1); s.border_color = Color(0.30, 0.70, 0.38)
 		s.set_corner_radius_all(8)
 		btn.add_theme_stylebox_override(state, s)
-	btn.add_theme_font_size_override("font_size", 24)
+	btn.add_theme_font_size_override("font_size", 34)
 	btn.add_theme_color_override("font_color", Color.WHITE)
 	btn.pressed.connect(cb)
 	parent.add_child(btn); return btn
@@ -176,9 +187,3 @@ func _add_btn(parent: Control, text: String, cb: Callable,
 func _on_start_pressed() -> void:
 	GameManager.reset_progress()
 	GameManager.go_to_level(1)
-
-func _on_level_select_pressed() -> void:
-	GameManager.go_to_level_select()
-
-func _on_quit_pressed() -> void:
-	get_tree().quit()

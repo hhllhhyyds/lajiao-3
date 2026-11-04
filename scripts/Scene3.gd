@@ -4,6 +4,7 @@ extends SceneBase
 
 # 操作状态追踪
 var disinfect_step: int = 0  # 0=pick bud, 1=alcohol, 2=sterile_water1, 3=naclo, 4=sterile_water2, 5=cabinet, 6=peel, 7=inoculate
+var _tweezers_held: bool = false   # 第①步是否已拿起无菌镊子
 
 # 花药可见节点，用于移动动画
 
@@ -33,7 +34,7 @@ const MAT_STEEL_BRIGHT := preload("res://materials/steel_bright.tres")
 
 # 各操作目标位置（悬停在试剂/器具上方）
 const POS_BUD      := Vector3(-4.5, 1.35, 0.3)
-const POS_ALCOHOL  := Vector3(-3.8, 1.55, 0.0)
+const POS_ALCOHOL  := Vector3(-3.35, 1.55, 0.0)
 const POS_WATER1   := Vector3(-2.3, 1.55, 0.0)
 const POS_NACLO    := Vector3(-0.8, 1.55, 0.0)
 const POS_WATER2   := Vector3( 0.7, 1.55, 0.0)
@@ -43,9 +44,9 @@ const POS_MEDIUM   := Vector3( 2.45, 1.16,  1.15)
 
 # 镊子长轴是 +X，Y 转 180° 后钳口指向 -X，所以镊子横在画面里、始终水平，
 # 原点比钳口往右退 0.65m
-const TWZ_REST_POS := Vector3(-3.85, 1.22, 0.30)
-const TWZ_REST_ROT := Vector3(0.0, 180.0, 0.0)
-const TWZ_CARRY_DX := 0.65
+const TWZ_REST_POS := Vector3(-4.88, 1.00, 0.40)   # 平放在桌面、花药左侧，不与花药接触
+const TWZ_REST_ROT := Vector3(0.0, 0.0, 0.0)   # 镊尖统一朝 +X，夹取后不再翻转
+const TWZ_CARRY_DX := -0.65   # 镊尖朝 +X，故本体停在瓶口左侧，尖端指向瓶口
 
 var bud_label: LabelProjector.TagLabel
 var twz_label: LabelProjector.TagLabel
@@ -101,17 +102,38 @@ func _panel(size: Vector3, pos: Vector3, mat: Material) -> MeshInstance3D:
 ## 场景三每个器物上方都已经有固定标签，悬停名称牌再往上抬一截，
 ## 免得红色提示压在固定标签上
 ## 场景三的红色提示牌做得和场景二一样醒目
-func _style_tooltip(_obj_name: String, lbl: Label3D) -> void:
-	lbl.font_size = 52
-	lbl.outline_size = 10
+# 红字统一排在各自固定标签正上方 0.24 m 处（数值按各标签实测高度标定）
+const _TIP_DY := {
+	"bottle_alcohol": 0.30,
+	"bottle_water1": 0.26,
+	"bottle_naclo": 0.62,
+	"bottle_water2": 0.26,
+	"flower_bud": 1.86,
+	"medium_plate": 0.03,
+	"tweezers": -1.13,
+}
+
+## 提示条字号：绿框（成功）加大到 30，红框同步提到 28 保持层级
+func flash_message(msg: String, good: bool = true, dur: float = 2.2,
+		font_size: int = 20, custom_color: Color = Color(-1, -1, -1),
+		half_w: int = 220, half_h: int = 40, show_prefix: bool = true,
+		offset_x: float = 0.0, offset_y: float = 186.0) -> void:
+	var fs := maxi(font_size, 30) if good else maxi(font_size, 28)
+	super.flash_message(msg, good, dur, fs, custom_color, half_w,
+		maxi(half_h, 44), show_prefix, offset_x, offset_y)
+
+func _style_tooltip(obj_name: String, lbl: Label3D) -> void:
+	# 次氯酸钠那条上移后离物体更远，字号单独放大一档
+	lbl.font_size = 34 if obj_name == "bottle_naclo" else 28
+	lbl.outline_size = 6
 	lbl.modulate = Color(1.0, 0.26, 0.18)
 
-## 红色名称牌挂在物体正上方，抬到固定标签之上，两者不打架
+## 红色名称牌统一压在各固定标签的正上方，紧挨着不叠字
 func _tooltip_offset(obj_name: String) -> Vector3:
 	# 培养皿在最右边，单行红字很长，左移一点免得顶出画面
-	if obj_name == "medium_plate":
-		return Vector3(-0.50, 0.95, 0.0)
-	return Vector3(0.0, 0.62, 0.0)
+	# 培养基那条跟固定标签一样居中偏移，才能正对在它上方
+	var dx := 0.10 if obj_name == "medium_plate" else 0.0
+	return Vector3(dx, float(_TIP_DY.get(obj_name, 0.30)), 0.0)
 
 func _dress_bottle(base: Vector3, radius: float, height: float,
 		text: String, liquid: Color = Color(0, 0, 0, 0)) -> void:
@@ -139,7 +161,7 @@ func _dress_bottle(base: Vector3, radius: float, height: float,
 func _build_bottles() -> void:
 	# 真实瓶型（Blender 旋转成型）：棕色试剂瓶 / 两支广口瓶 / 锥形瓶
 	# 本关是 4 倍尺度（台面 10 m 宽），所以道具整体放大
-	PropKit.spawn(self, BOTTLE_SCENE, Vector3(-3.80, 0.99, -0.30), Vector3.ZERO, {
+	PropKit.spawn(self, BOTTLE_SCENE, Vector3(-3.35, 0.99, -0.30), Vector3.ZERO, {
 		"bottle_body": MAT_AMBER,
 		"bottle_cap": MAT_CAP,
 		"bottle_cap_ridge": MAT_CAP,
@@ -169,14 +191,14 @@ func _build_bottles() -> void:
 	}, Vector3(3.6, 3.6, 3.6))
 
 	# 标签纸 + 液面
-	_dress_bottle(Vector3(-3.80, 0.99, -0.30), 0.128, 0.70, "75% 乙醇")
+	_dress_bottle(Vector3(-3.35, 0.99, -0.30), 0.128, 0.70, "75% 乙醇")
 	_dress_bottle(Vector3(-2.30, 0.99, -0.30), 0.132, 0.18, "无菌水",
 		Color(0.62, 0.80, 0.92, 0.55))
 	_dress_bottle(Vector3(0.70, 0.99, -0.30), 0.132, 0.18, "无菌水",
 		Color(0.62, 0.80, 0.92, 0.55))
 
 	create_interactable("bottle_alcohol",
-		Vector3(-3.8, 1.42, -0.3), mk_cyl(0.22, 0.82),
+		Vector3(-3.35, 1.42, -0.3), mk_cyl(0.22, 0.82),
 		Color(0.72, 0.45, 0.10, 0.0), Color(1.0, 0.75, 0.25), "75% 酒精")
 	interactables["bottle_alcohol"]["area"].get_child(0).visible = false
 	var lbl_alc := attach_label3d("bottle_alcohol", "75% 酒精", Vector3(0, 0.82, 0), 50, Color(1.0, 0.85, 0.5))
@@ -239,7 +261,7 @@ func _build_sterile_cabinet() -> void:
 		Vector3(cx, 2.0, cz), mk_box(Vector3(11.2, 4.6, d - 0.4)),
 		Color(0.62, 0.78, 0.92, 0.0), Color(0.75, 0.92, 1.0), "超净工作台（无菌区）")
 	interactables["sterile_cabinet"]["area"].get_child(0).visible = false
-	var lbl_room := add_label3d("实验室超净台（无菌环境）内室", Vector3(0.30, 3.50, 2.6), 60,
+	var lbl_room := add_label3d("无菌超净台内室", Vector3(0.30, 3.50, 2.6), 60,
 		Color.WHITE)
 	# 白字配深色描边，压在灰墙上才立得住；字号加粗加大
 	if lbl_room:
@@ -250,15 +272,17 @@ func _build_sterile_cabinet() -> void:
 
 func _build_flower_bud() -> void:
 	create_interactable("flower_bud",
-		Vector3(-4.5, 1.10, 0.3),
+		Vector3(-3.86, 1.10, 0.30),   # 放在镊尖右侧，两者不重叠
 		mk_sphere(0.15),
-		Color(0.95, 0.89, 0.60),
-		Color(1.0, 0.97, 0.55),
+		Color(0.84, 0.75, 0.44),
+		Color(0.93, 0.85, 0.46),
 		"花药（已低温预处理）")
 	for ch in interactables["flower_bud"]["area"].get_children():
 		if ch is Label3D and not ch.get_meta("static_label", false):
-			ch.position = Vector3(0.0, -0.38, 0.0)
-	var lbl_bud := add_label3d("花药", Vector3(-4.5, 1.72, 0.3), 50, Color(0.9, 1.0, 0.7))
+			# 红字要压在上面那行"花药"标签之上（-0.38 是旧的下方位置，已废弃）
+			# 红字压在"花药"标签正上方（标签世界高 1.36，area 在 1.10）
+			ch.position = Vector3(0.0, 0.52, 0.0)
+	var lbl_bud := add_label3d("花药", Vector3(-4.38, 1.36, 0.30), 50, Color(0.9, 1.0, 0.7))
 	bud_label = lbl_bud
 	lbl_bud.outline_size = 8; lbl_bud.outline_modulate = Color(0.1, 0.25, 0.05, 0.9)
 
@@ -288,7 +312,7 @@ func _build_medium() -> void:
 		Vector3(2.45, 1.10, 1.15), mk_cyl(0.52, 0.20),
 		Color(0.74, 0.88, 0.68, 0.0), Color(0.85, 1.0, 0.75), "愈伤组织诱导培养基")
 	interactables["medium_plate"]["area"].get_child(0).visible = false
-	var lbl_med := attach_label3d("medium_plate", "愈伤组织\n诱导培养基", Vector3(0.52, 0.24, 0), 52,
+	var lbl_med := attach_label3d("medium_plate", "愈伤组织诱导培养基", Vector3(0.10, 0.24, 0), 52,
 		Color(0.0, 0.85, 0.85))
 	if lbl_med: lbl_med.outline_size = 10; lbl_med.outline_modulate = Color(0.0, 0.30, 0.30, 1.0)
 
@@ -307,8 +331,8 @@ func _build_medium() -> void:
 	held_anther.visible = false
 	tweezer_model.add_child(held_anther)
 	create_interactable("tweezers",
-		Vector3(-4.17, 1.22, 0.30), mk_box(Vector3(0.95, 0.36, 0.36)),
-		Color(0.72, 0.72, 0.75, 0.0), Color(0.90, 0.95, 1.0), "无菌镊子（夹取花药）")
+		Vector3(-4.88, 1.22, 0.40), mk_box(Vector3(0.95, 0.36, 0.36)),
+		Color(0.72, 0.72, 0.75, 0.0), Color(0.90, 0.95, 1.0), "用于夹取花药")
 	interactables["tweezers"]["area"].get_child(0).visible = false
 	var lbl_twz := attach_label3d("tweezers", "无菌镊子", Vector3(0.0, -0.36, 0.26), 44,
 		Color(0.86, 0.87, 0.90))
@@ -337,8 +361,43 @@ func _show_step(idx: int) -> void:
 		3: _tweezers_dip(POS_WATER1)
 		4: _tweezers_dip(POS_NACLO)
 		5: _tweezers_dip(POS_WATER2)
-		6: _tweezers_transfer()
+		6: pass   # 停在终漂后的位置，等玩家点培养基再接种
 		_: _tweezers_rest()
+
+## 玩家点镊子后：镊子离开台面抬到"手持"位置
+func _lift_tweezers() -> void:
+	if tweezer_model == null or not is_instance_valid(tweezer_model):
+		return
+	# 拿起：只沿 Y 轴竖直上升，不做任何横向位移
+	var up := Vector3(TWZ_REST_POS.x, TWZ_REST_POS.y + 0.55, TWZ_REST_POS.z)
+	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_property(tweezer_model, "position", up, 0.5)
+	if twz_label:
+		twz_label.visible = false
+
+## 镊子夹取花药时应处的横向位置（花药左侧 0.13 m）；抬起与下落都用它，保证竖直下落
+func _bud_above(height: float = 0.55) -> Vector3:
+	var area: Area3D = interactables.get("flower_bud", {}).get("area")
+	if area == null:
+		return TWZ_REST_POS + Vector3(0.0, height, 0.0)
+	var p := area.global_position
+	return Vector3(p.x - 0.45, p.y + height, p.z)
+
+## 玩家点花药后：镊子从正上方竖直落下接触花药，台面上的花药消失、镊子上出现一粒
+func _clamp_anther() -> void:
+	var area: Area3D = interactables.get("flower_bud", {}).get("area")
+	if tweezer_model and is_instance_valid(tweezer_model) and area:
+		var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		# 一条直线直奔花药，中途不转向
+		tw.tween_property(tweezer_model, "position", _bud_above(0.06), 0.6)
+		await tw.finished
+	if area:
+		area.get_child(0).visible = false
+	if bud_label:
+		bud_label.visible = false
+	if held_anther:
+		held_anther.visible = true
+	await get_tree().create_timer(0.25).timeout
 
 func _tweezers_rest() -> void:
 	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
@@ -358,19 +417,17 @@ func _tweezers_dip(target: Vector3) -> void:
 func _tweezers_transfer() -> void:
 	if held_anther:
 		held_anther.visible = true
-	var above := Vector3(POS_MEDIUM.x + TWZ_CARRY_DX, POS_MEDIUM.y + 0.50, POS_MEDIUM.z)
+	# 终漂后直奔培养基落点，不再先悬停在培养基上方
 	var down := Vector3(POS_MEDIUM.x + TWZ_CARRY_DX, POS_MEDIUM.y + 0.10, POS_MEDIUM.z)
 	var tw := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	tw.tween_property(tweezer_model, "position", above, 0.6)
-	tw.parallel().tween_property(tweezer_model, "rotation_degrees", TWZ_REST_ROT, 0.6)
-	tw.tween_property(tweezer_model, "position", down, 0.35)
+	tw.tween_property(tweezer_model, "position", down, 0.85)
+	tw.parallel().tween_property(tweezer_model, "rotation_degrees", TWZ_REST_ROT, 0.85)
 	tw.tween_callback(func():
 		if held_anther:
 			held_anther.visible = false
 		_place_anthers())
-	tw.tween_property(tweezer_model, "position", above, 0.30)
-	tw.tween_property(tweezer_model, "position", TWZ_REST_POS, 0.65)
-	tw.parallel().tween_property(tweezer_model, "rotation_degrees", TWZ_REST_ROT, 0.65)
+	tw.tween_property(tweezer_model, "position", TWZ_REST_POS, 0.7)
+	tw.parallel().tween_property(tweezer_model, "rotation_degrees", TWZ_REST_ROT, 0.7)
 
 ## 接种：在琼脂上放下一枚花药
 func _place_anthers() -> void:
@@ -384,25 +441,23 @@ func _define_steps() -> void:
 	steps = [
 		{
 			"title": "📖  步骤说明：花药消毒与接种",
-			"body": "全部操作都在超净台内完成，按顺序进行：\n"
-				+ "① 取花药 → ② 75% 酒精消毒 → ③ 无菌水漂洗 → ④ 8% NaClO 消毒 → "
-				+ "⑤ 无菌水漂洗 → ⑥ 接种诱导愈伤组织培养基\n"
-				+ "每步消毒步骤都不可省略，否则杂菌污染会导致实验失败！",
+			"body": "全部操作在超净台内按序完成，任一步骤省略都会引发杂菌污染，导致实验失败：\n"
+				+ "取花药 → 75% 酒精 30 s → 无菌水漂洗 → 8% NaClO 5–10 min\n"
+				+ "→ 无菌水终漂 → 接种培养基",
 			"click_to_advance": true,
 			"active_objects": []
 		},
 		{
-			"title": "① 取花药",
-			"body": "点击台面上的花药，将其取到操作位置。",
+			"title": "① 拿起镊子，夹取花药",
+			"body": "先点击【无菌镊子】拿起镊子，再用镊子点击花药将其夹取。",
 			"click_to_advance": false,
-			"active_objects": ["flower_bud"],
-			"correct_object": "flower_bud",
-			"correct_message": "已取花药，准备消毒处理"
+			"active_objects": ["tweezers", "flower_bud"],
+			"correct_object": "tweezers",
+			"correct_message": "已拿起无菌镊子"
 		},
 		{
 			"title": "② 75% 酒精消毒（30 秒）",
-			"body": "用 75% 酒精对花药表面进行消毒 30 秒，去除表面大部分杂菌。\n"
-				+ "⚠  不能用更高浓度酒精，否则会损伤花药组织。",
+			"body": "75% 酒精消毒 30 秒，去除表面大部分杂菌。浓度不可更高，否则损伤花药组织。",
 			"click_to_advance": false,
 			"active_objects": ["bottle_alcohol"],
 			"correct_object": "bottle_alcohol",
@@ -410,7 +465,7 @@ func _define_steps() -> void:
 		},
 		{
 			"title": "③ 无菌水漂洗",
-			"body": "用无菌水将花药上残余的酒精洗去，避免残余酒精影响后续操作。",
+			"body": "用无菌水洗去残余酒精，避免影响后续操作。",
 			"click_to_advance": false,
 			"active_objects": ["bottle_water1"],
 			"correct_object": "bottle_water1",
@@ -418,8 +473,7 @@ func _define_steps() -> void:
 		},
 		{
 			"title": "④ 8% NaClO 消毒（5~10 分钟）",
-			"body": "用 8% 次氯酸钠溶液进一步消毒，可杀灭酒精无法去除的孢子和细菌。\n"
-				+ "次氯酸钠具有强氧化性，消毒更彻底。",
+			"body": "8% 次氯酸钠消毒 5–10 分钟，强氧化性可杀灭酒精难以去除的孢子与细菌。",
 			"click_to_advance": false,
 			"active_objects": ["bottle_naclo"],
 			"correct_object": "bottle_naclo",
@@ -427,8 +481,7 @@ func _define_steps() -> void:
 		},
 		{
 			"title": "⑤ 无菌水再次漂洗",
-			"body": "用无菌水将花药上残余的 NaClO 彻底冲洗干净。\n"
-				+ "残余消毒液会抑制花药细胞生长，必须充分漂洗。",
+			"body": "用无菌水彻底冲净残余 NaClO。残留消毒液会抑制花药细胞生长。",
 			"click_to_advance": false,
 			"active_objects": ["bottle_water2"],
 			"correct_object": "bottle_water2",
@@ -436,9 +489,7 @@ func _define_steps() -> void:
 		},
 		{
 			"title": "⑥ 接种到诱导培养基",
-			"body": "用无菌镊子将花药水平放置在愈伤组织诱导培养基上。\n"
-				+ "花药应均匀分布，避免重叠，接种密度适当。\n"
-				+ "操作完成后立即封口，防止污染。",
+			"body": "用无菌镊子将花药平放于诱导培养基上，分布均匀不重叠，完成后立即封口。",
 			"click_to_advance": false,
 			"active_objects": ["medium_plate"],
 			"correct_object": "medium_plate",
@@ -448,6 +499,30 @@ func _define_steps() -> void:
 	]
 
 func _on_interactable_clicked(obj_name: String) -> void:
+	# 第①步要先拿镊子，再用镊子夹花药
+	# 第⑥步：玩家点培养基（悬停会先显示红字提示）后再接种
+	if current_step_index == 6:
+		if obj_name == "medium_plate":
+			flash_message("用镊子将花药接种到培养基上", true)
+			await _tweezers_transfer()
+			advance_step()
+			return
+
+	if current_step_index == 1:
+		if obj_name == "tweezers":
+			_tweezers_held = true
+			flash_message("已拿起无菌镊子，请点击花药夹取", true)
+			_lift_tweezers()
+			_refresh_highlights(["flower_bud"])
+			return
+		if obj_name == "flower_bud":
+			if not _tweezers_held:
+				flash_message("请先点击【无菌镊子】拿起镊子，再用它夹取花药", false)
+				return
+			flash_message("已用镊子夹取花药，准备消毒处理", true)
+			await _clamp_anther()
+			advance_step()
+			return
 	var step: Dictionary = steps[current_step_index]
 	var correct: String = step.get("correct_object", "")
 	if obj_name == correct:

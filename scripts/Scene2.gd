@@ -41,6 +41,8 @@ func _ready() -> void:
 	light_radius = 3.2
 	light_intensity = 0.95
 	light_key_yaw = 24.0
+	# 提示条排队：红框/绿框严格一条退出后另一条才出现，避免重叠
+	queue_toasts = true
 	super._ready()
 
 func _configure_camera() -> void:
@@ -104,10 +106,12 @@ func _build_pepper_plant() -> void:
 
 	# 标签：花药说明跟在"盛花期"后面，用括号括起来
 	var plant_lbl := add_label3d(
-		"处于盛花状态的辣椒植株（这朵花里有五种发育程度的花药）",
+		"处于盛花状态的辣椒植株（这朵花里有 5 种发育程度的花药）",
 		Vector3(-1.0, 2.86, 0), 54, Color(0.8, 1.0, 0.8))
 	plant_lbl.outline_size = 6
 	plant_lbl.outline_modulate = Color(0.1, 0.3, 0.1, 0.9)
+	plant_lbl.font_px = 34   # size 参数会被 _font_for 钳在 27px，放大只能走 font_px
+	plant_lbl.bold = true
 
 ## 展示花：花瓣平铺成盘，花心留空，花药立在中间不会被遮挡
 func _build_display_flower() -> void:
@@ -141,15 +145,32 @@ func _build_display_flower() -> void:
 		pivot.add_child(petal)
 		flower.add_child(pivot)
 
+## 提示条字号加大：红框（失败）32，绿框（成功）30
+func flash_message(msg: String, good: bool = true, dur: float = 2.2,
+		font_size: int = 20, custom_color: Color = Color(-1, -1, -1),
+		half_w: int = 220, half_h: int = 40, show_prefix: bool = true,
+		offset_x: float = 0.0, offset_y: float = 0.0) -> void:
+	var fs := maxi(font_size, 30) if good else maxi(font_size, 32)
+	super.flash_message(msg, good, dur, fs, custom_color, half_w, half_h,
+		show_prefix, offset_x, offset_y)
+
 ## 花药标本：球形碰撞体 + 真实花药外观，材质与交互体共用以便高亮。
+## 悬停名称牌统一收小：基类默认字号偏大，五个花药标签会糊成一片
+func _style_tooltip(_obj_name: String, lbl: Label3D) -> void:
+	lbl.font_size = 26
+	lbl.outline_size = 6
+	lbl.modulate = Color(1.0, 0.26, 0.18)
+
 ## pos 是"花朵平面内"的局部坐标，花药统一竖直立在花心里
 func _anther_specimen(nm: String, local_pos: Vector3, size: float, color: Color,
 		hover: Color, tooltip: String, scl: float, tilt: float = 20.0) -> void:
-	create_interactable(nm, _flower_xf * local_pos, mk_sphere(size), color, hover, tooltip)
+	# 悬停高亮改成"只提亮 8%"：原来用的是明亮的 hover 色，鼠标一上去
+	# 花药颜色会突然变浅，看起来像换了材质
+	create_interactable(nm, _flower_xf * local_pos, mk_sphere(size), color,
+		color.lightened(0.08), tooltip)
 	var area: Area3D = interactables[nm]["area"]
 	area.get_child(0).visible = false
-	# 悬停名称牌：沿"花心 → 花药"方向推到花冠外侧，贴着所指花药，
-	# 同时不压在花冠上；字号和描边都加大，红色更亮
+	# 悬停名称牌：沿"花心 → 花药"方向推到花冠外侧
 	var area_pos: Vector3 = _flower_xf * local_pos
 	var out_dir := Vector3(area_pos.x - FLOWER_CENTER.x, 0.0, area_pos.z - FLOWER_CENTER.z)
 	if out_dir.length() < 0.05:
@@ -157,9 +178,12 @@ func _anther_specimen(nm: String, local_pos: Vector3, size: float, color: Color,
 	out_dir = out_dir.normalized()
 	for ch in area.get_children():
 		if ch is Label3D:
-			ch.position = out_dir * 1.02 + Vector3(0.0, -0.10, 0.0)
-			ch.font_size = 52
-			ch.outline_size = 10
+			# 排在所指花药的左/右侧（哪侧空间大放哪侧），文字边沿离花药还有一段距离，
+			# 不会压在花药本体上
+			var side := -1.0 if area_pos.x <= FLOWER_CENTER.x else 1.0
+			ch.position = Vector3(side * 0.50, 0.06, 0.0)
+			ch.font_size = 26
+			ch.outline_size = 6
 			ch.modulate = Color(1.0, 0.26, 0.18)
 	PropKit.spawn(area, ANTHER_SCENE, Vector3(0.0, 0.05, 0.0), Vector3(tilt, 0.0, 0.0), {
 		"anther_body": interactables[nm]["mat"],
@@ -205,12 +229,14 @@ func _build_cold_storage() -> void:
 	_panel(Vector3(0.05, 0.34, 0.05), c + Vector3(w * 0.5 - 0.16, 0.0, d * 0.5 + 0.05), MAT_STEEL)
 
 	# 温度显示条
-	var disp := add_static(mk_box(Vector3(0.42, 0.16, 0.04)),
+	var disp := add_static(mk_box(Vector3(0.66, 0.22, 0.04)),
 		c + Vector3(0.0, h * 0.5 + 0.10, d * 0.5 - 0.10), Color(0.05, 0.10, 0.14))
 	disp.material_override = MAT_DISPLAY
 	var lbl_disp := add_label3d("3–5 ℃", c + Vector3(0.0, h * 0.5 + 0.10, d * 0.5 + 0.06), 34, Color(0.45, 1.0, 0.72))
+	lbl_disp.font_px = 30          # size 参数会被 _font_for 钳到 17px，放大走 font_px
 	lbl_disp.outline_size = 5
 	lbl_disp.outline_modulate = Color(0.0, 0.10, 0.06, 0.9)
+	lbl_disp.bold = true
 
 	# 柜内冷光
 	var cool := OmniLight3D.new()
@@ -228,14 +254,18 @@ func _build_cold_storage() -> void:
 		"低温预处理箱")
 	interactables["cold_box"]["area"].get_child(0).visible = false
 	var lbl_cold := attach_label3d("cold_box", "低温预处理箱", Vector3(0, 1.42, 0), 44, Color(0.72, 0.88, 1.0))
-	if lbl_cold: lbl_cold.outline_size = 7; lbl_cold.outline_modulate = Color(0.05, 0.1, 0.3, 0.9)
+	if lbl_cold:
+		lbl_cold.outline_size = 7
+		lbl_cold.outline_modulate = Color(0.05, 0.1, 0.3, 0.9)
+		lbl_cold.font_px = 32   # 同上：绕过 _font_for 的 27px 上限
+		lbl_cold.bold = true
 
 func _build_temp_controls() -> void:
 	# 温度控制面板（UI覆盖层）
 	var temp_panel := Panel.new()
 	temp_panel.anchor_left = 1.0; temp_panel.anchor_right = 1.0
-	temp_panel.offset_left = -270; temp_panel.offset_right = -10
-	temp_panel.offset_top = 76; temp_panel.offset_bottom = 200
+	temp_panel.offset_left = -390; temp_panel.offset_right = -10
+	temp_panel.offset_top = 72; temp_panel.offset_bottom = 236
 	var ps := StyleBoxFlat.new()
 	ps.bg_color = Color(0.04, 0.10, 0.18, 0.94)
 	ps.set_border_width_all(1); ps.border_color = Color(0.20, 0.45, 0.80)
@@ -246,44 +276,47 @@ func _build_temp_controls() -> void:
 	canvas_layer.add_child(temp_panel)
 
 	var title := Label.new(); title.text = "🌡  温度控制"
-	title.position = Vector2(12, 8); title.size = Vector2(240, 30)
-	title.add_theme_font_size_override("font_size", 19)
+	title.position = Vector2(16, 10); title.size = Vector2(340, 34)
+	title.add_theme_font_size_override("font_size", 23)
 	title.add_theme_color_override("font_color", Color(0.6, 0.85, 1.0))
 	temp_panel.add_child(title)
 
 	temp_lbl = Label.new()
 	temp_lbl.text = "%.1f ℃" % temp_value
-	temp_lbl.position = Vector2(80, 44); temp_lbl.size = Vector2(100, 36)
+	temp_lbl.position = Vector2(120, 52); temp_lbl.size = Vector2(140, 46)
 	temp_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	temp_lbl.add_theme_font_size_override("font_size", 26)
+	temp_lbl.add_theme_font_size_override("font_size", 34)
 	temp_lbl.add_theme_color_override("font_color", Color(0.9, 0.95, 1.0))
 	temp_panel.add_child(temp_lbl)
 
 	temp_minus_btn = Button.new(); temp_minus_btn.text = "▼ 降温"
-	temp_minus_btn.position = Vector2(12, 44); temp_minus_btn.size = Vector2(65, 36)
+	temp_minus_btn.position = Vector2(16, 52); temp_minus_btn.size = Vector2(96, 46)
 	_style_button(temp_minus_btn, Color(0.15, 0.25, 0.50))
+	temp_minus_btn.add_theme_font_size_override("font_size", 21)
 	temp_minus_btn.pressed.connect(_on_temp_minus)
 	temp_panel.add_child(temp_minus_btn)
 
 	temp_plus_btn = Button.new(); temp_plus_btn.text = "升温 ▲"
-	temp_plus_btn.position = Vector2(182, 44); temp_plus_btn.size = Vector2(65, 36)
+	temp_plus_btn.position = Vector2(276, 52); temp_plus_btn.size = Vector2(96, 46)
 	_style_button(temp_plus_btn, Color(0.50, 0.18, 0.10))
+	temp_plus_btn.add_theme_font_size_override("font_size", 21)
 	temp_plus_btn.pressed.connect(_on_temp_plus)
 	temp_panel.add_child(temp_plus_btn)
 
 	# 等待计时按钮
-	time_btn = Button.new(); time_btn.text = "⏱ 开始低温预处理"
-	time_btn.position = Vector2(8, 90); time_btn.size = Vector2(244, 36)
+	time_btn = Button.new(); time_btn.text = "⏱ 点击此处开始低温预处理"
+	time_btn.position = Vector2(12, 112); time_btn.size = Vector2(364, 46)
 	_style_button(time_btn, Color(0.08, 0.30, 0.14))
+	time_btn.add_theme_font_size_override("font_size", 21)
 	time_btn.pressed.connect(_on_time_btn_pressed)
 	time_btn.visible = false
 	temp_panel.add_child(time_btn)
 
 	time_lbl = Label.new()
 	time_lbl.text = "已处理：0 小时"
-	time_lbl.position = Vector2(12, 88); time_lbl.size = Vector2(244, 30)
+	time_lbl.position = Vector2(12, 118); time_lbl.size = Vector2(364, 34)
 	time_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	time_lbl.add_theme_font_size_override("font_size", 16)
+	time_lbl.add_theme_font_size_override("font_size", 21)
 	time_lbl.add_theme_color_override("font_color", Color(0.7, 0.88, 1.0))
 	time_lbl.visible = false
 	temp_panel.add_child(time_lbl)
@@ -297,8 +330,13 @@ func _define_steps() -> void:
 			"active_objects": []
 		},
 		{
-			"title": "🌸  操作提示：选取适合进行花药离体培养的花药，可通过花药颜色判断花药内部生殖细胞处于何种发育时期。",
-			"body": "盛花状态下的辣椒，同一朵花里就能看到发育阶段不同的花药————花粉母细胞期花药呈淡绿色，花药中存在处于减数分裂Ⅰ前期的花粉母细胞（2n=24），尚未形成小孢子细胞（精子，n=12）；单核早期花药呈浅黄绿色，减数分裂已完成，产生了小孢子（n=12），但此时期小孢子的脱分化能力较弱；单核靠边期花药呈鲜黄色，此时期小孢子的脱分化能力很强；二核期花药呈深黄色，此时期小孢子细胞完成了一次有丝分裂趋向更加成熟的发育状态，但脱分化能力极低；成熟花粉期花药呈现黄紫色，小孢子细胞成熟度达到最高，具备受精能力，但细胞基本已完全失去脱分化能力。请结合提示信息仔细观察并选取合适的花药。",
+			"title": "🌸  选取花药：凭花药颜色判断发育时期",
+			"body": "同一朵花中的花药发育时期不同，请选择最适合花药离体培养（植物组织培养）的花药：\n"
+				+ "• 淡绿色—花粉母细胞期（2n=24），尚未开始减数分裂\n"
+				+ "• 浅黄绿—单核早期（n=12），脱分化能力弱\n"
+				+ "• 鲜黄色—单核靠边期（n=12），脱分化能力强\n"
+				+ "• 深黄色—二核期（n=12），脱分化能力极低\n"
+				+ "• 黄紫色—成熟花粉期（n=12），已失去脱分化能力",
 			"click_to_advance": false,
 			"active_objects": ["bud_correct", "bud_early", "bud_late", "bud_uninuclear_early", "bud_mature"],
 			"correct_object": "bud_correct",
@@ -307,9 +345,7 @@ func _define_steps() -> void:
 		},
 		{
 			"title": "❄  操作：放入低温预处理箱",
-			"body": "将采集到的花药放入低温预处理箱。\n"
-				+ "低温预处理可以使细胞分裂同步化，提高愈伤组织诱导率。\n"
-				+ "请点击低温预处理箱，将花药放入。",
+			"body": "点击低温预处理箱放入花药。低温可使细胞分裂同步化，提高愈伤诱导率。",
 			"click_to_advance": false,
 			"active_objects": ["cold_box"],
 			"correct_object": "cold_box",
@@ -317,20 +353,16 @@ func _define_steps() -> void:
 		},
 		{
 			"title": "🌡  操作：调节低温处理温度",
-			"body": "低温预处理的最佳温度为 3–5 ℃。\n"
-				+ "请点击【▼ 降温】按钮将温度降至 3–5 ℃范围内。\n"
-				+ "温度过低会损伤细胞，温度过高则达不到预处理效果。",
+			"body": "最佳温度 3–5 ℃，请点击【▼ 降温】调到此区间。过低损伤细胞，过高则无效。",
 			"click_to_advance": false,
 			"active_objects": []
 		},
 		{
 			"title": "⏱  操作：等待低温预处理完成",
-			"body": "低温预处理需要 24–72 小时。\n"
-				+ "点击【开始低温预处理】按钮模拟等待，处理时长自动推进至 48 小时。\n"
-				+ "处理完成后，花药将作为实验材料进入下一步操作。",
+			"body": "预处理需 24–72 小时。点击【开始低温预处理】模拟等待，自动推进至 48 小时。",
 			"click_to_advance": false,
 			"active_objects": [],
-			"completion_text": "材料选取完成！\n已成功选取单核靠边期花药，并在 3–5℃ 条件下进行了 48 小时低温预处理。\n低温预处理可以使小孢子（花粉细胞）细胞分裂同步化，显著提高后续愈伤组织诱导率。\n准备进入下一步：花药消毒与接种。"
+			"completion_text": "材料选取完成！\n已选取单核靠边期花药，并在 3–5 ℃ 下预处理 48 小时。\n低温预处理可使小孢子分裂同步化，提高愈伤诱导率。\n下一步：花药消毒与接种。"
 		},
 	]
 
@@ -389,6 +421,9 @@ func _on_time_btn_pressed() -> void:
 func _process(delta: float) -> void:
 	if not time_running:
 		return
+	# 培养开始后花药在箱内缓慢旋转
+	if bud_model and is_instance_valid(bud_model):
+		bud_model.rotation.y += delta * 1.5
 	hours_elapsed += delta * 12.0  # 加速模拟
 	time_lbl.text = "已处理：%.0f 小时" % hours_elapsed
 	if hours_elapsed >= 48.0:
@@ -430,6 +465,4 @@ func _animate_bud_to_cold_box() -> void:
 	tw.tween_property(bud_model, "position", target_pos, 1.2).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
 	tw.tween_property(bud_model, "scale", Vector3(0.8, 0.8, 0.8), 1.2)
 
-	# 旋转效果
-	tw.set_parallel(false)
-	tw.tween_property(bud_model, "rotation", Vector3(0, TAU * 2, 0), 1.2)
+	# 放入培养箱时先不旋转，等开始培养后再转（见 _process）
