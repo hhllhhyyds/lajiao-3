@@ -61,7 +61,7 @@ jobs:
           if-no-files-found: error
 
   macos:
-    runs-on: macos-latest
+    runs-on: macos-13        # Intel 镜像，macos-latest 排队太久
     steps:
       - uses: actions/checkout@v4
 
@@ -106,7 +106,8 @@ jobs:
           if-no-files-found: error
 
   release:
-    needs: [windows, macos]
+    # 只要 windows 成功就先发 Release；macOS 排队/失败也不挡 Windows 包
+    needs: [windows]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
@@ -120,6 +121,7 @@ jobs:
           files: |
             dist/windows-exe/lajiao.exe
             dist/macos-dmg/lajiao.dmg
+          fail_on_unmatched_files: false
           name: "辣椒单倍体育种 ${{ github.ref_name }}"
           body: |
             Windows：lajiao.exe（单文件，双击即玩）
