@@ -1,0 +1,118 @@
+name: Build Windows & macOS
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: "4.7.2"
+  GODOT_CHANNEL: stable
+  BASE_URL: https://github.com/godotengine/godot/releases/download/4.7.2-stable
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 下载 Godot 与导出模板
+        shell: pwsh
+        run: |
+          $v = "$env:GODOT_VERSION-$env:GODOT_CHANNEL"
+          Invoke-WebRequest "$env:BASE_URL/Godot_v$v`_win64.exe.zip" -OutFile godot.zip
+          Expand-Archive godot.zip -DestinationPath .
+          Remove-Item godot.zip
+
+          Invoke-WebRequest "$env:BASE_URL/Godot_v$v`_export_templates.tpz" -OutFile tpl.zip
+          Expand-Archive tpl.zip -DestinationPath tpl
+          New-Item -ItemType Directory -Force -Path "$env:APPDATA\Godot\export_templates\$v" | Out-Null
+          Copy-Item tpl\templates\* "$env:APPDATA\Godot\export_templates\$v" -Recurse -Force
+          Get-ChildItem "$env:APPDATA\Godot\export_templates\$v" | Select-Object Name, Length
+
+      - name: 导入资源
+        shell: pwsh
+        run: |
+          $v = "$env:GODOT_VERSION-$env:GODOT_CHANNEL"
+          & ".\Godot_v$v`_win64_console.exe" --headless --path . --import
+          exit 0
+
+      - name: 导出 Windows（单文件 exe）
+        shell: pwsh
+        run: |
+          $v = "$env:GODOT_VERSION-$env:GODOT_CHANNEL"
+          New-Item -ItemType Directory -Force -Path build/windows | Out-Null
+          & ".\Godot_v$v`_win64_console.exe" --headless --path . --export-release "Windows Desktop" "build/windows/lajiao.exe"
+          Get-ChildItem build/windows | Select-Object Name, Length
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: build/windows/*.exe
+          if-no-files-found: error
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 下载 Godot 与导出模板
+        run: |
+          set -e
+          V="${GODOT_VERSION}-${GODOT_CHANNEL}"
+          curl -L -o godot.zip "${BASE_URL}/Godot_v${V}_macos.universal.zip"
+          unzip -q godot.zip
+          chmod +x Godot.app/Contents/MacOS/Godot
+          ./Godot.app/Contents/MacOS/Godot --version
+
+          curl -L -o tpl.zip "${BASE_URL}/Godot_v${V}_export_templates.tpz"
+          DEST="$HOME/Library/Application Support/Godot/export_templates/${GODOT_VERSION}.${GODOT_CHANNEL}"
+          mkdir -p "$DEST"
+          unzip -q tpl.zip -d /tmp/tpl
+          mv /tmp/tpl/templates/* "$DEST"/
+          ls "$DEST" | grep -i macos || true
+
+      - name: 导入资源
+        run: ./Godot.app/Contents/MacOS/Godot --headless --path . --import || true
+
+      - name: 导出 macOS（.app）
+        run: |
+          set -e
+          mkdir -p build/macos
+          ./Godot.app/Contents/MacOS/Godot --headless --path . --export-release "macOS" build/macos/lajiao.app
+          ls -la build/macos
+
+      - name: 打包 dmg
+        run: |
+          set -e
+          hdiutil create -volname "辣椒单倍体育种" -srcfolder build/macos/lajiao.app -ov -format UDZO build/macos/lajiao.dmg
+          ls -lh build/macos
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: build/macos/lajiao.dmg
+          if-no-files-found: error
+
+  release:
+    needs: [windows, macos]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - name: 列出产物
+        run: find dist -type f
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/windows-exe/lajiao.exe
+            dist/macos-dmg/lajiao.dmg
+          name: "辣椒单倍体育种 ${{ github.ref_name }}"
+          body: |
+            Windows：lajiao.exe（单文件，双击即玩）
+            macOS：lajiao.dmg（未签名，首次打开请右键 → 打开，或运行 xattr -dr com.apple.quarantine /Applications/lajiao.app）
