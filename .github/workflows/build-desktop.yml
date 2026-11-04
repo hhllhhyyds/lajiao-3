@@ -22,22 +22,26 @@ jobs:
       - name: 下载 Godot 与导出模板
         shell: pwsh
         run: |
-          $v = "$env:GODOT_VERSION-$env:GODOT_CHANNEL"
-          Invoke-WebRequest "$env:BASE_URL/Godot_v$v`_win64.exe.zip" -OutFile godot.zip
+          # 注意两个版本号写法不同：下载文件名用 4.7.2-stable，模板目录必须是 4.7.2.stable
+          $tag = "$env:GODOT_VERSION-$env:GODOT_CHANNEL"
+          $ver = "$env:GODOT_VERSION.$env:GODOT_CHANNEL"
+
+          Invoke-WebRequest "$env:BASE_URL/Godot_v${tag}_win64.exe.zip" -OutFile godot.zip
           Expand-Archive godot.zip -DestinationPath .
           Remove-Item godot.zip
 
-          Invoke-WebRequest "$env:BASE_URL/Godot_v$v`_export_templates.tpz" -OutFile tpl.zip
+          Invoke-WebRequest "$env:BASE_URL/Godot_v${tag}_export_templates.tpz" -OutFile tpl.zip
           Expand-Archive tpl.zip -DestinationPath tpl
-          New-Item -ItemType Directory -Force -Path "$env:APPDATA\Godot\export_templates\$v" | Out-Null
-          Copy-Item tpl\templates\* "$env:APPDATA\Godot\export_templates\$v" -Recurse -Force
-          Get-ChildItem "$env:APPDATA\Godot\export_templates\$v" | Select-Object Name, Length
+          $dest = "$env:APPDATA\Godot\export_templates\$ver"
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          Copy-Item tpl\templates\* $dest -Recurse -Force
+          Get-ChildItem $dest | Where-Object Name -like 'windows*' | Select-Object Name, Length
 
       - name: 导入资源
         shell: pwsh
         run: |
           $v = "$env:GODOT_VERSION-$env:GODOT_CHANNEL"
-          & ".\Godot_v$v`_win64_console.exe" --headless --path . --import
+          & ".\Godot_v$($env:GODOT_VERSION)-$($env:GODOT_CHANNEL)_win64_console.exe" --headless --path . --import
           exit 0
 
       - name: 导出 Windows（单文件 exe）
@@ -45,7 +49,7 @@ jobs:
         run: |
           $v = "$env:GODOT_VERSION-$env:GODOT_CHANNEL"
           New-Item -ItemType Directory -Force -Path build/windows | Out-Null
-          & ".\Godot_v$v`_win64_console.exe" --headless --path . --export-release "Windows Desktop" "build/windows/lajiao.exe"
+          & ".\Godot_v$($env:GODOT_VERSION)-$($env:GODOT_CHANNEL)_win64_console.exe" --headless --path . --export-release "Windows Desktop" "build/windows/lajiao.exe"
           Write-Host "export exit code: $LASTEXITCODE"
           Get-ChildItem build/windows | Select-Object Name, Length
           if (-not (Test-Path build/windows/lajiao.exe)) { throw "lajiao.exe 没有生成" }
