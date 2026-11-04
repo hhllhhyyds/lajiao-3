@@ -46,7 +46,9 @@ jobs:
           $v = "$env:GODOT_VERSION-$env:GODOT_CHANNEL"
           New-Item -ItemType Directory -Force -Path build/windows | Out-Null
           & ".\Godot_v$v`_win64_console.exe" --headless --path . --export-release "Windows Desktop" "build/windows/lajiao.exe"
+          Write-Host "export exit code: $LASTEXITCODE"
           Get-ChildItem build/windows | Select-Object Name, Length
+          if (-not (Test-Path build/windows/lajiao.exe)) { throw "lajiao.exe 没有生成" }
 
       - uses: actions/upload-artifact@v4
         with:
@@ -83,7 +85,9 @@ jobs:
           set -e
           mkdir -p build/macos
           ./Godot.app/Contents/MacOS/Godot --headless --path . --export-release "macOS" build/macos/lajiao.app
+          echo "export exit code: $?"
           ls -la build/macos
+          test -d build/macos/lajiao.app || { echo "lajiao.app 没有生成"; exit 1; }
 
       - name: 打包 dmg
         run: |
